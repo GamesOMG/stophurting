@@ -1,0 +1,6 @@
+{
+  "_comment": "webroots: dirs a leading '/' may resolve against, in order. origins: our own hostnames, so absolute refs to ourselves are checked and other hosts are left alone. ignore: refs served from outside this repo.",
+  "webroots": [""],
+  "origins": ["stophurting.org"],
+  "ignore": []
+}
