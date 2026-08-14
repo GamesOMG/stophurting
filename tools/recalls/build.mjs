@@ -149,12 +149,12 @@ function recallPage(rec, slug, img) {
   <meta property="og:title" content="${esc(`${prod} Recall (${monthYear(rec.RecallDate)})`)}" />
   <meta property="og:description" content="${esc(desc)}" />
 ${img ? `  <meta property="og:image" content="${ORIGIN}${esc(img.rel)}" />\n` : ''}  <meta property="og:type" content="article" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>" />
+  ${FAVICON}
   <link rel="stylesheet" href="/assets/css/style.css" />
   <script type="application/ld+json">${JSON.stringify(ld)}</script>
 </head>
 <body>
-  <header class="site-header"><div class="wrap header-inner"><a class="brand" href="/"><span class="brand-mark">🌿</span><span class="brand-name">Stop<span class="brand-accent">Hurting</span></span></a><nav class="nav"><a href="/recalls/">Recalls</a><a href="/#remedies">Remedies</a><a href="/#myths">Myth Checks</a><a href="/about/">About</a></nav></div></header>
+  ${HEADER}
   <main>
     <article class="article-wrap">
       <div class="breadcrumb"><a href="/">Home</a> &nbsp;/&nbsp; <a href="/recalls/">Recalls</a></div>
@@ -175,23 +175,29 @@ ${remedy ? `        <h2>What to do</h2>\n        <p>Stop using the product. The 
       </div>
     </article>
   </main>
-  <footer class="site-footer"><div class="wrap">© StopHurting — recall data from the U.S. Consumer Product Safety Commission (public domain). Not legal or medical advice.</div></footer>
+  ${FOOTER}
 </body>
 </html>
 `;
 }
 
 // ---------- hub + homepage + sitemap ----------
-function card(r) {
-  return `        <a class="card" href="/recalls/${r.slug}/">
-          <span class="chip chip-recall">Recall</span>
-          <h3>${esc(r.prod)}</h3>
-          <p>${esc(clamp(r.hazard, 110))}</p>
-          <span class="card-date">${esc(r.date)}</span>
-        </a>`;
+const SEAL = `<svg viewBox="0 0 24 26" aria-hidden="true"><path d="M12 1l10 4v7c0 6.5-4.3 11.3-10 13C6.3 23.3 2 18.5 2 12V5l10-4z" fill="#e07b39"/><path d="M7.5 12.5l3 3 6-6" stroke="#16334f" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const HEADER = `<header class="site-header"><div class="wrap header-inner"><a class="brand" href="/"><span class="brand-mark">${SEAL}</span><span class="brand-name">Stop<span class="brand-accent">Hurting</span></span></a><nav class="nav"><a href="/recalls/">Recalls</a><a href="/myths/">Myth Checks</a><a href="/about/">About</a></nav></div></header>`;
+const FOOTER = `<footer class="site-footer"><div class="wrap">© StopHurting — recall data from the U.S. Consumer Product Safety Commission (public domain). Not legal or medical advice.</div></footer>`;
+const FAVICON = `<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26'><path d='M12 1l10 4v7c0 6.5-4.3 11.3-10 13C6.3 23.3 2 18.5 2 12V5l10-4z' fill='%23e07b39'/><path d='M7.5 12.5l3 3 6-6' stroke='%2316334f' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />`;
+
+function row(r) {
+  return `        <li><a class="r-row" href="/recalls/${r.slug}/"><span class="r-date">${esc(r.date)}</span><span class="r-prod">${esc(r.prod)}</span><span class="r-hazard">${esc(clamp(r.hazard, 90))}</span></a></li>`;
+}
+function ticker(items) {
+  const five = items.slice(0, 5)
+    .map((r) => `<a href="/recalls/${r.slug}/">${esc(r.prod)} — ${esc(clamp(r.hazard, 60))}</a>`)
+    .join('<span class="ticker-sep">•</span>');
+  return `<div class="ticker" aria-label="Latest recalls"><span class="ticker-label">LATEST</span><div class="ticker-clip"><div class="ticker-track">${five}<span class="ticker-sep">•</span>${five}</div></div></div>`;
 }
 function hubPage(items) {
-  const cards = items.map(card).join('\n');
+  const rows = items.map(row).join('\n');
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -200,21 +206,41 @@ function hubPage(items) {
   <title>Product Recalls, Tracked Daily — StopHurting</title>
   <meta name="description" content="Every U.S. consumer product recall, posted as it drops — what was recalled, the hazard, and what to do, straight from the official CPSC notices. ${items.length} tracked." />
   <link rel="canonical" href="${ORIGIN}/recalls/" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>" />
+  ${FAVICON}
   <link rel="stylesheet" href="/assets/css/style.css" />
 </head>
 <body>
-  <header class="site-header"><div class="wrap header-inner"><a class="brand" href="/"><span class="brand-mark">🌿</span><span class="brand-name">Stop<span class="brand-accent">Hurting</span></span></a><nav class="nav"><a href="/recalls/">Recalls</a><a href="/#remedies">Remedies</a><a href="/#myths">Myth Checks</a><a href="/about/">About</a></nav></div></header>
+  ${HEADER}
+  ${ticker(items)}
   <main>
     <section class="wrap section">
       <h1 class="section-title">Product recalls, tracked daily</h1>
-      <p class="section-sub">Straight from the official CPSC notices — what was recalled, why it's dangerous, and what to do about it. Newest first, updated automatically.</p>
-      <div class="grid">
-${cards}
-      </div>
+      <p class="section-sub">Straight from the official CPSC notices — what was recalled, why it's dangerous, and what to do about it. Newest first, updated automatically. ${items.length} tracked since June 2026.</p>
+      <div class="search-box" style="margin:0 0 1.2rem"><input id="q" type="search" placeholder="Search a brand, product, or model number…" autocomplete="off" style="border:1px solid var(--light)" /></div>
+      <ul class="r-list" id="hub-list">
+${rows}
+      </ul>
     </section>
   </main>
-  <footer class="site-footer"><div class="wrap">© StopHurting — recall data from the U.S. Consumer Product Safety Commission (public domain). Not legal or medical advice.</div></footer>
+  ${FOOTER}
+  <script>
+  (function () {
+    var q = document.getElementById('q'); var host = document.getElementById('hub-list');
+    if (!q || !host) return;
+    var idx = null, original = host.innerHTML;
+    function load() { if (!idx) fetch('/recalls-index.json').then(function (r) { return r.json(); }).then(function (j) { idx = j; }); }
+    q.addEventListener('focus', load, { once: true });
+    q.addEventListener('input', function () {
+      var t = q.value.trim().toLowerCase();
+      if (!t) { host.innerHTML = original; return; }
+      if (!idx) { load(); return; }
+      var hits = idx.filter(function (r) { return r.t.indexOf(t) > -1; }).slice(0, 40);
+      host.innerHTML = hits.length
+        ? hits.map(function (r) { return '<li><a class="r-row" href="/recalls/' + r.slug + '/"><span class="r-date">' + r.date + '</span><span class="r-prod">' + r.prod + '</span><span class="r-hazard">' + r.hazard + '</span></a></li>'; }).join('')
+        : '<li class="r-empty">No tracked recall matches that — we cover CPSC recalls from June 2026 onward.</li>';
+    });
+  })();
+  </script>
 </body>
 </html>
 `;
@@ -223,24 +249,21 @@ function injectHome(items) {
   const home = path.join(ROOT, 'index.html');
   let html = readFileSync(home, 'utf8');
   const strip = `<!-- RECALLS:START (generated by tools/recalls/build.mjs — do not hand-edit this block) -->
-    <section class="wrap section" id="recalls">
-      <h2 class="section-title">Latest product recalls</h2>
-      <div class="grid">
-${items.slice(0, 6).map(card).join('\n')}
-      </div>
-      <p style="margin-top:1rem"><a class="btn" href="/recalls/">All ${items.length} tracked recalls</a></p>
-    </section>
-    <!-- RECALLS:END -->`;
-  if (html.includes('<!-- RECALLS:START')) {
-    html = html.replace(/<!-- RECALLS:START[\s\S]*?<!-- RECALLS:END -->/, strip);
-  } else {
-    html = html.replace('<section class="wrap section" id="articles">', strip + '\n\n    <section class="wrap section" id="articles">');
-  }
-  // nav link, once
-  if (!html.includes('href="/recalls/"')) {
-    html = html.replaceAll('<nav class="nav"><a href="/#remedies">', '<nav class="nav"><a href="/recalls/">Recalls</a><a href="/#remedies">');
-  }
+      <ul class="r-list">
+${items.slice(0, 20).map(row).join('\n')}
+      </ul>
+      <!-- RECALLS:END -->`;
+  html = html.replace(/<!-- RECALLS:START[\s\S]*?<!-- RECALLS:END -->/, strip);
+  const tick = `<!-- TICKER:START -->\n  ${ticker(items)}\n  <!-- TICKER:END -->`;
+  html = html.replace(/<!-- TICKER:START -->[\s\S]*?<!-- TICKER:END -->/, tick);
   writeFileSync(home, html);
+}
+function writeSearchIndex(items) {
+  const idx = items.map((r) => ({
+    slug: r.slug, date: r.date, prod: r.prod, hazard: clamp(r.hazard, 90),
+    t: `${r.prod} ${r.hazard} ${r.models || ''} ${r.num}`.toLowerCase(),
+  }));
+  writeFileSync(path.join(ROOT, 'recalls-index.json'), JSON.stringify(idx));
 }
 function sitemap(items) {
   const staticPages = ['', 'about/', 'recalls/',
@@ -275,13 +298,16 @@ async function indexNow(newUrls) {
 }
 
 // ---------- main ----------
+const REBUILD = process.argv.includes('--rebuild');
+const earliestSeen = Object.values(state.seen).map((r) => r.date).sort()[0];
 const since = sinceIdx > -1 ? process.argv[sinceIdx + 1]
+  : REBUILD && earliestSeen ? earliestSeen
   : new Date(Date.now() - DEFAULT_WINDOW_DAYS * 864e5).toISOString().slice(0, 10);
 const res = await fetch(`https://www.saferproducts.gov/RestWebServices/Recall?format=json&RecallDateStart=${since}`);
 if (!res.ok) { console.error(`CPSC feed HTTP ${res.status} — aborting, state untouched.`); process.exit(1); }
 const feed = await res.json();
-const fresh = feed.filter((r) => !state.seen[r.RecallID]);
-console.log(`feed: ${feed.length} recalls since ${since} · new: ${fresh.length}`);
+const fresh = REBUILD ? feed : feed.filter((r) => !state.seen[r.RecallID]);
+console.log(`feed: ${feed.length} recalls since ${since} · ${REBUILD ? 'REBUILD all' : 'new'}: ${fresh.length}`);
 if (!fresh.length && !WRITE) process.exit(0);
 
 const newUrls = [];
@@ -292,11 +318,17 @@ for (const rec of fresh) {
   const dir = path.join(ROOT, 'recalls', slug);
   mkdirSync(dir, { recursive: true });
   writeFileSync(path.join(dir, 'index.html'), recallPage(rec, slug, img));
+  const models = [
+    ...(rec.Products || []).map((p) => p.Model).filter(Boolean),
+    ...(rec.ProductUPCs || []).map((u) => (typeof u === 'string' ? u : u?.UPC)).filter(Boolean),
+  ].join(' ');
+  const wasSeen = !!state.seen[rec.RecallID];
   state.seen[rec.RecallID] = {
     slug, prod: productName(rec), hazard: hazardShort(rec),
     date: isoDay(rec.RecallDate), modified: isoDay(rec.LastPublishDate), num: rec.RecallNumber,
+    models,
   };
-  newUrls.push(`${ORIGIN}/recalls/${slug}/`);
+  if (!wasSeen) newUrls.push(`${ORIGIN}/recalls/${slug}/`);
   console.log(`  + ${slug}`);
 }
 
@@ -305,9 +337,10 @@ if (WRITE) {
   mkdirSync(path.join(ROOT, 'recalls'), { recursive: true });
   writeFileSync(path.join(ROOT, 'recalls', 'index.html'), hubPage(items));
   injectHome(items);
+  writeSearchIndex(items);
   sitemap(items);
   writeFileSync(STATE_FILE, JSON.stringify(state, null, 1));
-  console.log(`hub: ${items.length} recalls · homepage strip + sitemap rebuilt`);
+  console.log(`hub: ${items.length} recalls · home strip + ticker + search index + sitemap rebuilt`);
 }
 
 if (COMMIT && newUrls.length) {
