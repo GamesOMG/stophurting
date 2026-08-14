@@ -123,3 +123,15 @@ h1,h2,h3{line-height:1.2;margin:0 0 .5em}
 .article-foot{max-width:760px;margin:2.4rem auto 1rem;padding:1.4rem 22px 0;border-top:1px solid var(--light)}
 .back-link{font-weight:700;color:var(--blue)}
 .back-link:hover{color:var(--orange-dark)}
+
+/* ---- Recalls (tools/recalls/build.mjs pages) ---- */
+.chip-recall{background:#fbe3e1;color:#a52a21}
+.card-date{display:block;margin-top:.5rem;font-size:.8rem;color:var(--gray)}
+.section-sub{text-align:center;color:var(--gray);max-width:56ch;margin:-.6rem auto 1.6rem}
+.recall-facts{width:100%;border-collapse:collapse;margin:0 0 1.4rem;font-size:.97rem}
+.recall-facts th{text-align:left;white-space:nowrap;padding:.55rem .9rem .55rem 0;color:var(--gray);font-weight:700;vertical-align:top;width:1%}
+.recall-facts td{padding:.55rem 0;border-bottom:1px solid #edf0f4}
+.recall-facts tr:last-child td{border-bottom:0}
+.recall-img img{max-width:100%;border-radius:10px}
+.recall-img figcaption{font-size:.85rem;color:var(--gray);margin-top:.4rem}
+.recall-source{font-size:.9rem;color:var(--gray);border-top:1px solid #edf0f4;padding-top:1rem;margin-top:1.6rem}
