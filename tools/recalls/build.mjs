@@ -50,9 +50,19 @@ const cc = (r) => (r && r.country) || 'us';
 const recallPath = (r) => `/${cc(r)}/recalls/${r.slug}/`;
 const hubPath = (c) => `/${c}/recalls/`;
 // ⚠ The nav is rewritten onto EVERY html file in the repo by syncFooters(). It therefore cannot
-// depend on which country this run happens to be building, or a `--country au` run would
-// silently repoint all 150 pages at the Australian hub. It is a constant.
-const NAV_HUB = '/us/recalls/';
+// depend on which country this run happens to be building, or a `--country au` run would silently
+// repoint all 182 pages at the Australian hub. It has to be one constant for the whole site.
+//
+// ⭐ Which is why it points at the HOMEPAGE and not at a country hub. It used to be /us/recalls/,
+// which stranded readers: someone on an Australian recall page clicking "Recalls" landed in the
+// United States, and the nav being a constant meant no per-page fix was possible. The homepage is
+// the right target on its own merits now — it is the recall index, carrying the search box, the
+// newest from every country and the switcher, so "Recalls" lands you where you choose a country
+// rather than inside one of them.
+// ⛔ Do not "fix" this by serving a page at /recalls/: `/recalls/*` in _redirects matches the bare
+// path too, so the 301 protecting the published Facebook post and everything submitted to
+// IndexNow would have to be unpicked to make room for it. Not worth it for a nav link.
+const NAV_HUB = '/';
 const WRITE = process.argv.includes('--write') || process.argv.includes('--commit');
 const COMMIT = process.argv.includes('--commit');
 const sinceIdx = process.argv.indexOf('--since');
