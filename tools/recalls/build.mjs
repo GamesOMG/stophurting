@@ -250,6 +250,23 @@ const HEADER = `<header class="site-header"><div class="wrap header-inner"><a cl
 const FOOTER = `<footer class="site-footer"><div class="wrap">© StopHurting — recall data from the U.S. Consumer Product Safety Commission (public domain). Not legal or medical advice. &nbsp;·&nbsp; <a href="/updates/">Corrections</a> &nbsp;·&nbsp; <a href="/privacy/">Privacy</a> &nbsp;·&nbsp; <a href="/contact/">Contact</a> &nbsp;·&nbsp; <a href="/about/">About</a></div></footer>`;
 const FAVICON = `<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26'><path d='M12 1l10 4v7c0 6.5-4.3 11.3-10 13C6.3 23.3 2 18.5 2 12V5l10-4z' fill='%23e07b39'/><path d='M7.5 12.5l3 3 6-6' stroke='%2316334f' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />`;
 
+// ⭐ THE HUB IS NOW PHOTO-LED. Jason: "the long list on a white background is just bothering me…
+// it looks like a 2000's website." He is right, and the fix is also the FUNCTIONAL one: the
+// question a visitor actually has is "do I own this thing?", which a photograph answers instantly
+// and a product name often does not. All 134 recalls have a mirrored CPSC photo, so there are no
+// gaps to design around — the usual reason sites fall back to text rows.
+// ⛔ Photos are `object-fit: contain` on white, never cropped to fill: a recall thumbnail that
+// slices the product in half fails at its only job.
+function card(r) {
+  return `        <a class="r-card" href="/recalls/${r.slug}/">
+          <span class="r-card-img"><img src="/assets/img/recalls/${r.slug}/1.webp" alt="${esc(r.prod)}" loading="lazy" width="400" height="300" /></span>
+          <span class="r-card-body">
+            <span class="r-card-prod">${esc(clamp(r.prod, 64))}</span>
+            <span class="r-card-hazard">${esc(clamp(r.hazard, 70))}</span>
+            <span class="r-card-date">${esc(r.date)}</span>
+          </span>
+        </a>`;
+}
 function row(r) {
   return `        <li><a class="r-row" href="/recalls/${r.slug}/"><span class="r-date">${esc(r.date)}</span><span class="r-prod">${esc(r.prod)}</span><span class="r-hazard">${esc(clamp(r.hazard, 90))}</span></a></li>`;
 }
@@ -280,9 +297,10 @@ function hubPage(items) {
       <h1 class="section-title">Product recalls, tracked daily</h1>
       <p class="section-sub">Straight from the official CPSC notices — what was recalled, why it's dangerous, and what to do about it. Newest first, updated automatically. ${items.length} tracked since June 2026.</p>
       <div class="search-box" style="margin:0 0 1.2rem"><input id="q" type="search" placeholder="Search a brand, product, or model number…" autocomplete="off" style="border:1px solid var(--light)" /></div>
-      <ul class="r-list" id="hub-list">
-${rows}
-      </ul>
+      <div class="r-grid" id="hub-list">
+${items.map(card).join('
+')}
+      </div>
     </section>
   </main>
   ${FOOTER}
@@ -299,8 +317,8 @@ ${rows}
       if (!idx) { load(); return; }
       var hits = idx.filter(function (r) { return r.t.indexOf(t) > -1; }).slice(0, 40);
       host.innerHTML = hits.length
-        ? hits.map(function (r) { return '<li><a class="r-row" href="/recalls/' + r.slug + '/"><span class="r-date">' + r.date + '</span><span class="r-prod">' + r.prod + '</span><span class="r-hazard">' + r.hazard + '</span></a></li>'; }).join('')
-        : '<li class="r-empty">No tracked recall matches that — we cover CPSC recalls from June 2026 onward.</li>';
+        ? hits.map(function (r) { return '<a class="r-card" href="/recalls/' + r.slug + '/"><span class="r-card-img"><img src="/assets/img/recalls/' + r.slug + '/1.webp" alt="" loading="lazy" /></span><span class="r-card-body"><span class="r-card-prod">' + r.prod + '</span><span class="r-card-hazard">' + r.hazard + '</span><span class="r-card-date">' + r.date + '</span></span></a>'; }).join('')
+        : '<p class="r-empty">No tracked recall matches that — we cover CPSC recalls from June 2026 onward.</p>';
     });
   })();
   </script>
