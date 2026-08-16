@@ -58,7 +58,27 @@ const argOf = (flag, dflt) => {
   return i > -1 && process.argv[i + 1] ? process.argv[i + 1] : dflt;
 };
 const COMMIT = process.argv.includes('--commit');
-const LIMIT = Number(argOf('--limit', 3));
+
+// ⭐ CPSC POSTS ONLY ON THURSDAYS. Measured 2026-08-16 across 57 days: 109 recalls, every single
+// one on a Thursday, nine Thursdays in a row, 7–18 per drop. Nothing on any other weekday, ever.
+// A fixed cap of 3/run with a 4-hourly task would clear an 18-recall Thursday inside 12 hours and
+// then post nothing for six days — burst, then dead air, which is the worst shape for a
+// feed-ranked platform.
+// So the cap is COMPUTED: remaining candidates ÷ runs left before the next Thursday. An 18-recall
+// batch becomes ~1 per run across the week, and a missed run shrinks the divisor so the next run
+// catches up on its own. No schedule table, and nothing for Jason to do on Thursdays.
+const RUN_INTERVAL_HOURS = 4;   // the stophurting-recalls task cadence
+const MAX_PER_RUN = 3;          // hard ceiling, whatever the maths says
+function runsUntilNextDrop(now = new Date()) {
+  const day = now.getDay();                    // 0 Sun … 4 Thu
+  let daysToThu = (4 - day + 7) % 7;
+  if (daysToThu === 0) daysToThu = 7;          // it IS Thursday: the next drop is a week out
+  const hoursLeft = daysToThu * 24 - now.getHours();
+  return Math.max(1, Math.floor(hoursLeft / RUN_INTERVAL_HOURS));
+}
+// --runs-left exists so the pacing can be tested deterministically; production never passes it.
+const RUNS_LEFT = Number(argOf('--runs-left', runsUntilNextDrop()));
+const EXPLICIT_LIMIT = process.argv.includes('--limit') ? Number(argOf('--limit', 3)) : null;
 const MAX_AGE_DAYS = Number(argOf('--max-age', 30));
 const PAUSE_MS = Number(argOf('--pause', 45000));
 
@@ -152,6 +172,11 @@ async function main() {
   console.log(`token       : ${mask(sysToken)}`);
   console.log(`known       : ${Object.keys(state.seen).length} recalls`);
   console.log(`skipped     : ${skipped.backfill} backfill · ${skipped.alreadyPosted} already posted · ${skipped.tooOld} older than ${MAX_AGE_DAYS}d`);
+  // Pace: spread what is left across the runs remaining before the next Thursday drop.
+  const LIMIT = EXPLICIT_LIMIT !== null
+    ? EXPLICIT_LIMIT
+    : Math.max(1, Math.min(MAX_PER_RUN, Math.ceil(candidates.length / RUNS_LEFT)));
+  console.log(`pacing      : ${RUNS_LEFT} run(s) left before the next Thursday drop -> ${LIMIT}/run${EXPLICIT_LIMIT !== null ? ' (--limit override)' : ''}`);
   console.log(`candidates  : ${candidates.length}${candidates.length > LIMIT ? ` (capping at ${LIMIT} this run)` : ''}`);
   console.log(`mode        : ${COMMIT ? '🔴 COMMIT — will publish' : 'DRY — nothing will be published'}\n`);
 

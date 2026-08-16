@@ -96,10 +96,33 @@ run('rail2-age-cutoff-drops-old', {
 run('rail3-per-run-cap', {
   seen: Object.fromEntries([rec(1, day(-5)), rec(2, day(-4)), rec(3, day(-3)), rec(4, day(-2)), rec(5, day(-1))]),
   fbState: { backfill: [], posted: {} },
+  args: ['--limit', '3'],
 }, (out) => {
   must(out, 'candidates  : 5 (capping at 3 this run)', 'five candidates, three allowed');
   must(out, '3 would be published', 'exactly three compose');
   mustNot(out, 'Recalled: Thing 4', 'the fourth must wait for the next run');
+});
+
+// PACING — CPSC drops everything on a Thursday, so the cap is computed from how many runs remain
+// before the next drop. A fixed cap would clear an 18-recall batch in 12 hours and then post
+// nothing for six days. --runs-left makes this deterministic; production computes it from the clock.
+run('paces-a-thursday-batch-across-the-week', {
+  seen: Object.fromEntries(Array.from({ length: 18 }, (_, i) => rec(i + 20, day(-1)))),
+  fbState: { backfill: [], posted: {} },
+  args: ['--runs-left', '42'],
+}, (out) => {
+  must(out, '42 run(s) left', 'the pacing line must show the divisor');
+  must(out, '-> 1/run', '18 recalls over 42 runs is 1 per run');
+  must(out, '1 would be published', 'exactly one composes');
+});
+
+// ...and it CATCHES UP when runs have been missed, instead of falling permanently behind.
+run('pacing-catches-up-when-runs-were-missed', {
+  seen: Object.fromEntries(Array.from({ length: 18 }, (_, i) => rec(i + 40, day(-1)))),
+  fbState: { backfill: [], posted: {} },
+  args: ['--runs-left', '7'],
+}, (out) => {
+  must(out, '-> 3/run', '18 left with only 7 runs to go should raise the rate, clamped at the 3 ceiling');
 });
 
 // RAIL 3b — oldest first, so a busy week cannot starve an older unposted recall.
