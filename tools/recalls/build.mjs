@@ -277,7 +277,10 @@ function cardImage(r) {
     // deterministic. Newer records carry `img` explicitly.
     return `<img src="/assets/img/recalls/${esc(r.slug)}/1.webp" alt="${esc(r.prod)}" loading="lazy" width="400" height="300" />`;
   }
-  return `<span class="r-card-noimg"><span class="r-card-cat">${esc(r.cat || 'Recall')}</span><span class="r-card-noimg-note">no photo published</span></span>`;
+  // ⛔ The category ALONE. An earlier version added "no photo published" under it, which is true
+  // and which nobody needs to read ninety-nine times — repeated down a whole hub it reads as an
+  // apology rather than a design. The tile is visibly not a photograph; that is enough.
+  return `<span class="r-card-noimg"><span class="r-card-cat">${esc(r.cat || 'Recall')}</span></span>`;
 }
 function card(r, showCc = false) {
   return `        <a class="r-card" href="${recallPath(r)}">
@@ -342,7 +345,11 @@ function hubPage(items, country) {
       <p class="section-sub">${esc(src.hubIntro(items.length))}</p>
       <div class="search-box" style="margin:0 0 1.2rem"><input id="q" type="search" placeholder="Search a brand, product, or model number…" autocomplete="off" style="border:1px solid var(--light)" /></div>
       <div class="r-grid" id="hub-list">
-${items.map(card).join('\n')}
+${/* 🪤 NOT items.map(card) — Array.map passes (element, INDEX, array), so the index landed in
+     `showCc`: card 0 got no country badge and every card after it got one, on every hub, for as
+     long as badges have existed. Found by looking at the Kingdom hub and noticing the first tile
+     was the odd one out. A country hub wants NO badges: every card there is already that country. */
+  ''}${items.map((r) => card(r)).join('\n')}
       </div>
     </section>
   </main>
