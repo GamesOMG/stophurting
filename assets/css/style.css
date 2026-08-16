@@ -126,6 +126,12 @@ h1,h2,h3{line-height:1.2;margin:0 0 .5em}
 /* ── Footer ── */
 .site-footer{margin-top:48px;background:var(--navy-deep);color:#b9c7d6}
 .site-footer .wrap{padding-top:30px;padding-bottom:30px;font-size:.9rem}
+/* 🪤 Footer links used to inherit the global a{color:var(--blue)} — #215387 on #0f2438, about
+   1.4:1. Legally required links nobody can see are the same as no links at all, and this is the
+   footer AdSense reads for Privacy and Contact. Near-white + underline is ~10:1 and unmistakably
+   a link; orange on hover keeps the brand accent. */
+.site-footer a{color:#dbe6f0;text-decoration:underline;text-underline-offset:3px}
+.site-footer a:hover{color:var(--orange)}
 .footer-inner{padding:34px 22px;text-align:center}
 .footer-brand{font-weight:800;font-size:1.1rem;color:#fff;margin:0 0 .25rem}
 .footer-tag{margin:0 0 1rem;color:#d5dee7}
