@@ -271,6 +271,48 @@ h1,h2,h3{line-height:1.2;margin:0 0 .5em}
   .recall-shell{padding-top:24px}
 }
 
+/* ── Homepage two-column: grid + the same rail the recall pages use ──────────────────────────
+   His call, once there were three countries: the country selector was a quiet pill row under the
+   grid, and it is the site's primary navigation now. It moves into the rail — REUSED, not
+   reinvented — which also finally gives the homepage an ad slot, on the highest-traffic page of
+   a site whose entire reason to exist is ad revenue.
+   The rail earns its place with or without an ad: it holds the only internal links into /au/ and
+   /ca/ from the front door, and internal linking is one of the few levers a DR-0 site has. */
+.home-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;column-gap:34px;align-items:start;
+  grid-template-areas:"main side"}
+.hl-main{grid-area:main;min-width:0}
+.hl-side{grid-area:side;min-width:0;position:sticky;top:16px}
+.hl-ad{margin:0 0 1.1rem}
+/* The country entries are the one rail list that gets a code badge — it is the same "which
+   country am I looking at" cue as the ticker and the search results, and here it is what makes
+   the row scannable at a glance rather than three lines of similar-length words. */
+.rail-countries a{display:grid;grid-template-columns:auto 1fr;column-gap:.6rem;align-items:baseline}
+.rail-cc{grid-row:span 2;align-self:center;font-size:.68rem;font-weight:800;letter-spacing:.06em;
+  color:var(--gray-soft);border:1px solid var(--light);border-radius:4px;padding:.1rem .32rem}
+@media(max-width:900px){
+  /* ⭐ MOBILE PUTS THE COUNTRIES FIRST, ABOVE THE GRID — deliberately, and it is the reason the
+     rail dissolves rather than simply stacking. Left to stack, the primary navigation of a
+     multi-country site would sit below twelve cards, off the bottom of a phone screen.
+     ⛔ NOT a <select> dropdown, which was the other option considered: a <select> contains no
+     links, so a crawler never reaches /au/ or /ca/ from the homepage — and getting those indexed
+     is the entire point at DR 0. These stay real <a> elements and become a one-line horizontal
+     scroller, the pattern iOS and Android both use for section tabs: everything visible, one tap
+     instead of two. Revisit if the list ever passes about eight countries. */
+  .home-layout{grid-template-columns:1fr;grid-template-areas:"countries" "ad" "main"}
+  .hl-side{display:contents}
+  .hl-ad{grid-area:ad;margin:0 0 1.4rem}
+  .hl-rail{grid-area:countries;margin:0 0 1.2rem}
+  .hl-rail .rail-card{margin:0 0 .9rem}
+  .rail-countries{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+  .rail-countries li{flex:0 0 auto}
+  .rail-countries li+li{border-top:0}
+  .rail-countries a{display:flex;align-items:center;gap:.4rem;padding:.45rem .75rem;border:1px solid var(--light);
+    border-radius:999px;white-space:nowrap}
+  .rail-countries .rail-date{display:none}
+  .rail-countries .rail-prod{font-size:.9rem;margin:0}
+  .rail-cc{grid-row:auto}
+}
+
 /* ── Ticker — the "last 5 recalls" strip (his idea, right for the genre) ── */
 .ticker{display:flex;align-items:center;background:var(--navy-deep);border-bottom:1px solid rgba(255,255,255,.08);overflow:hidden}
 .ticker-label{flex:0 0 auto;background:var(--red);color:#fff;font-size:.72rem;font-weight:800;letter-spacing:.08em;padding:.45rem .8rem}
