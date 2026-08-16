@@ -293,6 +293,44 @@ ${rows}
 </html>
 `;
 }
+// ---------- 404 ----------
+// ⭐ MEASURED 2026-08-16: every nonexistent path returned HTTP 200 with the homepage —
+// /ads.txt included, so AdSense fetched HTML where a text file should be. To a crawler that is
+// a site with infinite pages of duplicate content, which is one of the most common reasons an
+// AdSense application is refused. Cloudflare Pages serves /404.html with a real 404 status for
+// unmatched paths, UNLESS the project is in SPA mode — in which case this file is ignored and
+// the fix is a dashboard toggle, not a commit. Deploy, then re-measure the status code.
+// A 404 here should still do the job the site exists for, so it carries the search box and the
+// latest recalls rather than a dead end.
+function notFoundPage(items) {
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Page not found — StopHurting</title>
+  <meta name="robots" content="noindex" />
+  ${FAVICON}
+  <link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  ${HEADER}
+  <main>
+    <section class="wrap section">
+      <h1 class="section-title">That page isn't here</h1>
+      <p class="section-sub">The link may be old, or the recall may never have existed. Search ${items.length} tracked recalls, or start from the newest below.</p>
+      <div class="search-box" style="margin:0 0 1.4rem"><input id="q" type="search" placeholder="Search a brand, product, or model number…" autocomplete="off" style="border:1px solid var(--light)" /></div>
+      <ul class="r-list" id="hub-list">
+${items.slice(0, 15).map(row).join('\n')}
+      </ul>
+    </section>
+  </main>
+  ${FOOTER}
+</body>
+</html>
+`;
+}
+
 function injectHome(items) {
   const home = path.join(ROOT, 'index.html');
   let html = readFileSync(home, 'utf8');
@@ -395,6 +433,7 @@ if (WRITE) {
   const items = Object.values(state.seen).sort((a, b) => b.date.localeCompare(a.date));
   mkdirSync(path.join(ROOT, 'recalls'), { recursive: true });
   writeFileSync(path.join(ROOT, 'recalls', 'index.html'), hubPage(items));
+  writeFileSync(path.join(ROOT, '404.html'), notFoundPage(items));
   injectHome(items);
   writeSearchIndex(items);
   sitemap(items);
