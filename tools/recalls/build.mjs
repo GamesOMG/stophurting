@@ -331,12 +331,18 @@ function privacyPage() {
       </header>
       <div class="prose">
         <h2>What we collect</h2>
-        <p>Nothing you type, because there is nothing to type. StopHurting.org has no accounts, no
-        newsletter, no comments and no contact forms. We run no analytics software of any kind, so
-        we do not build a profile of you, and we do not sell or share data about you, because we
-        do not hold any.</p>
+        <p>Nothing automatically. StopHurting.org has no accounts, no newsletter, no comments and
+        no forms of any kind. We run no analytics software, so we do not build a profile of you,
+        and we do not sell or share data about you.</p>
         <p>The search box on the recalls page runs entirely in your browser against a file your
         browser downloads. What you type into it is never sent to us.</p>
+
+        <h2>If you email us</h2>
+        <p>Our contact page publishes an email address rather than a form. If you write to us, we
+        receive and keep your message and your email address, in the same way anyone receiving
+        email does. We use it to reply to you and nothing else: it is not added to a mailing list,
+        not used for advertising, and not passed to anyone. Ask us to delete the correspondence and
+        we will.</p>
 
         <h2>Hosting</h2>
         <p>The site is served by Cloudflare Pages. Like any web host, Cloudflare processes
