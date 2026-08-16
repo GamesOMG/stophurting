@@ -121,6 +121,19 @@ run('rail6b-country-flag-selects-the-other-way', {
   mustNot(out, 'Recalled: Thing 1', 'the US recall must be refused when AU is selected');
 });
 
+// The operator action that made rails 1 and 6 independent. After three countries were added to
+// the site, 220 recalls sat outside the backfill and the country filter was the only thing
+// keeping them off a US page — one rail, on something that now runs unattended every four hours.
+run('backfill-flag-records-everything-and-posts-nothing', {
+  seen: Object.fromEntries([rec(1, day(-1)), auRec]),
+  fbState: { backfill: [], posted: {} },
+  args: ['--backfill'],
+}, (out) => {
+  must(out, 'recorded 2 additional recall(s) as backfill', 'it must claim exactly what it recorded');
+  must(out, 'Nothing was published', 'the backfill action must never publish, even with fresh recalls present');
+  mustNot(out, 'Recalled: Thing 1', 'no post may be composed on a backfill run');
+});
+
 run('rail3-per-run-cap', {
   seen: Object.fromEntries([rec(1, day(-5)), rec(2, day(-4)), rec(3, day(-3)), rec(4, day(-2)), rec(5, day(-1))]),
   fbState: { backfill: [], posted: {} },

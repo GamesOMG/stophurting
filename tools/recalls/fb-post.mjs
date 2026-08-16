@@ -43,6 +43,7 @@
 // rewrites wholesale on every run; sharing one file invites a lost update between the two tools.
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -89,6 +90,16 @@ const MAX_AGE_DAYS = Number(argOf('--max-age', 30));
 // ⛔ Default 'us', never 'all'. A default that widens as countries are added is a default that
 // silently changes what gets published every time the site grows — the opposite of a rail.
 const POST_COUNTRY = argOf('--country', 'us');
+// ⭐ Operator action, run once when a country is added to the SITE but not to the Facebook lane.
+// After Australia, Canada and the UK landed, 220 recalls sat outside the backfill and RAIL 6 WAS
+// THE ONLY THING keeping them off a US page. One rail is not a rail on something that runs
+// unattended every four hours: a typo in the country filter, or somebody running --country ca to
+// see what would happen, and the page takes a 220-post flood. Recording them as backfill makes
+// rails 1 and 6 independent, so either alone is sufficient.
+// ⚠ It is a one-way door for those specific recalls: if a country ever gets its own page, its
+// backfilled entries stay unpostable. That is the same trade the original 134 took, and by then
+// they are old news anyway — a new page wants current recalls, not a three-month archive dump.
+const BACKFILL_NOW = process.argv.includes('--backfill');
 const PAUSE_MS = Number(argOf('--pause', 45000));
 
 const mask = (s) => (!s ? '(empty)' : `${s.slice(0, 6)}…${s.slice(-4)} (len ${s.length})`);
@@ -167,6 +178,17 @@ async function main() {
 
   const backfill = new Set(fb.backfill || []);
   const posted = fb.posted || {};
+
+  if (BACKFILL_NOW) {
+    const added = Object.keys(state.seen).filter((id) => !backfill.has(id) && !posted[id]);
+    for (const id of added) backfill.add(id);
+    fb.backfill = [...backfill];
+    fb.backfilledAt = new Date().toISOString();
+    writeFileSync(FB_STATE_FILE, JSON.stringify(fb, null, 1));
+    console.log(`recorded ${added.length} additional recall(s) as backfill — ${backfill.size} total, none of them ever postable.`);
+    console.log('Nothing was published. Re-run without --backfill to post.');
+    return;
+  }
   const cutoff = new Date(Date.now() - MAX_AGE_DAYS * 864e5).toISOString().slice(0, 10);
 
   // ── candidates, with every rejection reason printed rather than silently dropped ──
@@ -252,6 +274,26 @@ async function main() {
     published++;
 
     if (i < batch.length - 1 && PAUSE_MS > 0) await sleep(PAUSE_MS);
+  }
+
+  // ⛔⛔ COMMIT THE STATE FILE. fb-state.json is the ONLY record of what has been posted, and its
+  // own header says deleting it re-arms the 134-post flood. Until now nothing committed it:
+  // build.mjs does `git add -A`, but only on a run that found NEW recalls, so after a quiet week
+  // the record of everything posted was sitting untracked on one machine. A re-clone, a disk
+  // failure or a `git checkout .` and the whole archive becomes postable again.
+  // ⚠ Deliberately not pushed here — build.mjs owns the push, and two processes racing a push in
+  // the same repo is how you get a rejected non-fast-forward at 3am. The next build carries it.
+  if (COMMIT && published) {
+    try {
+      execFileSync('git', ['add', '--', FB_STATE_FILE], { cwd: path.resolve(HERE, '..', '..') });
+      execFileSync('git', ['commit', '-m', `fb: record ${published} posted recall(s)`,
+        '-m', 'Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>'],
+      { cwd: path.resolve(HERE, '..', '..') });
+      console.log('fb-state.json committed.');
+    } catch (e) {
+      // A failed commit must not look like a failed post. The posts are already live.
+      console.log(`⚠ could not commit fb-state.json (${String(e.message).split('\n')[0]}) — it is still written to disk; commit it by hand.`);
+    }
   }
 
   if (COMMIT) console.log(`published ${published}${failed ? ` · ${failed} failed (will retry next run)` : ''}`);
