@@ -25,7 +25,10 @@ import { renderCard } from './card-image.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
-const STATE_FILE = path.join(HERE, 'state.json');
+// Overridable ONLY so the freshness alarm can be proven to fire — the same seam fb-post.mjs uses
+// for its rails. A guard that has never been seen going red is indistinguishable from no guard,
+// and this one exists precisely for the runs nobody is watching. Production passes nothing.
+const STATE_FILE = process.env.SH_STATE_FILE || path.join(HERE, 'state.json');
 const ORIGIN = 'https://stophurting.org';
 const argOf = (f, d) => { const i = process.argv.indexOf(f); return i > -1 && process.argv[i + 1] ? process.argv[i + 1] : d; };
 
@@ -950,6 +953,14 @@ const since = sinceIdx > -1 ? process.argv[sinceIdx + 1]
 
 const newUrls = [];
 const prepared = [];
+// ⛔⛔ NOTHING WAS WATCHING THIS. A feed that died printed 🔴 and the build carried on and exited
+// ZERO, so Task Scheduler reported success while a country quietly stopped updating — and the
+// task captured no output anywhere, so there was nothing to read afterwards either. That is the
+// "an exit code is not evidence" trap, running unattended every four hours.
+// ⭐ AUSTRALIA IS THE ONE THAT CANNOT BE RECOVERED: a rolling 25 with no archive, so anything that
+// scrolls off while we are blind is gone from them and from us, permanently. Silence there is not
+// an inconvenience, it is data loss.
+const failures = [];
 
 // ⭐ RECONCILE, not just append. Skipping every recall we have already seen meant two silent
 // failures on a site whose whole promise is "the official notice wins":
@@ -971,6 +982,7 @@ for (const country of TARGETS) {
     // ⛔ One regulator being down must not take the other's build with it, and must never let a
     // half-built run write state. Skip this country, keep the rest.
     console.error(`🔴 ${country.toUpperCase()} feed failed: ${e.message} — skipping ${country}, state untouched for it.`);
+    failures.push(`${country.toUpperCase()} feed failed: ${e.message}`);
     continue;
   }
 
@@ -1051,7 +1063,42 @@ for (const country of TARGETS) {
 // are built from state, so writing a page before the whole batch is in state means a batch of
 // five never cross-links — each page would only see the recalls that happened to precede it.
 // Pass 1 (above) records everything; pass 2 renders against the complete picture.
-if (!prepared.length && !WRITE) process.exit(0);
+// ── health: is every country still actually arriving? ────────────────────────────────────────
+// A feed can fail loudly (caught above) or QUIETLY — the endpoint still answers, the parse still
+// succeeds, and it simply returns nothing new because a field was renamed or a filter now matches
+// nothing. That failure is invisible to every check we have except this one: measured against our
+// own newest record per country, against a threshold each source declares from its own cadence.
+{
+  const today = new Date().toISOString().slice(0, 10);
+  const newest = {};
+  for (const r of Object.values(state.seen)) {
+    const c = cc(r);
+    if (!newest[c] || r.date > newest[c]) newest[c] = r.date;
+  }
+  console.log('\nfreshness:');
+  for (const c of COUNTRIES) {
+    const src = SOURCES[c];
+    const last = newest[c];
+    const quiet = last ? Math.round((new Date(today) - new Date(last)) / 864e5) : Infinity;
+    const limit = src.quietDays ?? 30;
+    const bad = quiet > limit;
+    console.log(`  ${c.toUpperCase()}  newest ${last || '(none)'}  ${quiet === Infinity ? '—' : `${quiet}d ago`}  (alarm at ${limit}d) ${bad ? '🔴 STALE' : '✓'}`);
+    if (bad) failures.push(`${c.toUpperCase()} has published nothing for ${quiet} days (expected within ${limit})`);
+  }
+}
+
+if (failures.length) {
+  console.error(`\n🔴 ${failures.length} PROBLEM(S) — this run is NOT healthy:`);
+  for (const f of failures) console.error(`   · ${f}`);
+  console.error('   Task Scheduler will show a non-zero Last Run Result for this.');
+  process.exitCode = 1;   // ⛔ so "success" in Task Scheduler means it actually succeeded
+}
+
+// 🪤 `process.exit(0)` OVERRIDES a `process.exitCode` set earlier — so this line silently threw
+// away the failure code the freshness alarm had just set, and a dry run reported success while
+// printing "🔴 1 PROBLEM(S)" two lines above. Caught by checking the exit code instead of reading
+// the message, which is the exact trap this whole health check exists to close.
+if (!prepared.length && !WRITE) process.exit(failures.length ? 1 : 0);
 if (prepared.length) {
   const all = Object.values(state.seen).sort((a, b) => b.date.localeCompare(a.date));
   for (const { rec, img, card } of prepared) {

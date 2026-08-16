@@ -677,6 +677,9 @@ export const SOURCES = {
     attribution: '',
     footerCredit: 'recall data from the U.S. Consumer Product Safety Commission (public domain)',
     completeWindow: true,
+    // ⏱ Longest believable silence before something is WRONG. CPSC drops weekly on Thursday, so
+    // ten days covers a missed drop plus slack; anything longer means the feed or our parse died.
+    quietDays: 10,
     // Which field a revision shows up in. CPSC moves LastPublishDate when it amends a notice.
     revisionKey: 'modified',
     hubTitle: 'Product Recalls, Tracked Daily — StopHurting',
@@ -730,6 +733,10 @@ export const SOURCES = {
     // have ever built for Australia. With this true, the first run would report the whole
     // country withdrawn.
     completeWindow: false,
+    // ⏱ ~0.7 recalls/day measured. THREE WEEKS of silence is the alarm — and this is the one
+    // that cannot be recovered from: the feed is a rolling 25 with no archive, so anything that
+    // scrolls off while we are blind is gone from them and from us, permanently.
+    quietDays: 21,
     windowNote: 'the ACCC publishes a rolling 25 items with NO archive, so every page we hold beyond those 25 is "absent" on every single run.',
     hubTitle: 'Australian Product Recalls — StopHurting',
     hubHeading: 'Australian product recalls',
@@ -782,6 +789,8 @@ export const SOURCES = {
     // ⚠ The file's `Archived` column is the honest future hook for status changes — but archived
     // on canada.ca means closed/old, NOT withdrawn, so it must not be published as one.
     completeWindow: false,
+    // ⏱ ~1.1 recalls/day measured; a fortnight of nothing means the CSV or our parse broke.
+    quietDays: 14,
     windowNote: 'the file IS the complete archive, but this adapter selects two lanes inside a 90-day window — absence describes our own filter, not a withdrawal.',
     revisionKey: 'modified',
     hubTitle: 'Canadian Product Recalls — StopHurting',
@@ -827,6 +836,8 @@ export const SOURCES = {
     // archive, but this adapter asks only for two alert types inside a 90-day window, so absence
     // from what it returned describes our own filter and says nothing about a withdrawal.
     completeWindow: false,
+    // ⏱ ~0.7 recalls/day measured across a rolling window.
+    quietDays: 14,
     windowNote: 'gov.uk holds the whole archive, but this adapter asks only for two alert types inside a 90-day window — absence describes our own filter, not a withdrawal.',
     revisionKey: 'modified',
     hubTitle: 'UK Product Recalls — StopHurting',
