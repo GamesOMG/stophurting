@@ -238,7 +238,7 @@ const HEADER = `<header class="site-header"><div class="wrap header-inner"><a cl
 // and their absence is a standard site-level rejection.
 // 🚧 Contact is added here the moment /contact/ exists — the dead-links check refuses a footer
 // link to a page that is not on disk, which is exactly what it is for.
-const FOOTER = `<footer class="site-footer"><div class="wrap">© StopHurting — recall data from the U.S. Consumer Product Safety Commission (public domain). Not legal or medical advice. &nbsp;·&nbsp; <a href="/privacy/">Privacy</a> &nbsp;·&nbsp; <a href="/about/">About</a></div></footer>`;
+const FOOTER = `<footer class="site-footer"><div class="wrap">© StopHurting — recall data from the U.S. Consumer Product Safety Commission (public domain). Not legal or medical advice. &nbsp;·&nbsp; <a href="/privacy/">Privacy</a> &nbsp;·&nbsp; <a href="/contact/">Contact</a> &nbsp;·&nbsp; <a href="/about/">About</a></div></footer>`;
 const FAVICON = `<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26'><path d='M12 1l10 4v7c0 6.5-4.3 11.3-10 13C6.3 23.3 2 18.5 2 12V5l10-4z' fill='%23e07b39'/><path d='M7.5 12.5l3 3 6-6' stroke='%2316334f' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />`;
 
 function row(r) {
@@ -375,7 +375,65 @@ function privacyPage() {
         <p>If this policy changes, the date at the top of this page changes with it.</p>
 
         <h2>Contact</h2>
-        <p>Questions about this policy can be sent through our contact page.</p>
+        <p>Questions about this policy can be sent through our <a href="/contact/">contact page</a>.</p>
+      </div>
+    </article>
+  </main>
+  ${FOOTER}
+</body>
+</html>
+`;
+}
+
+// ---------- contact ----------
+// Publishes admin@stophurting.org ONLY. Jason's personal address is never on the site; the
+// routing lives in Cloudflare Email Routing, so the destination can change without touching the
+// site. That address was already in use in a few places with no working route — this makes it
+// the one published contact point rather than adding another.
+// ⭐ The page pushes people to the RECALLING COMPANY first, on purpose. Every recall page already
+// carries the CPSC consumer-contact line, and we cannot process a refund or a replacement for
+// anyone. Saying so here keeps the inbox for things we can actually act on: corrections.
+const CONTACT_EMAIL = 'admin@stophurting.org';
+function contactPage() {
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Contact — StopHurting</title>
+  <meta name="description" content="How to reach StopHurting.org about a correction, a privacy question, or the recall data on this site." />
+  <link rel="canonical" href="${ORIGIN}/contact/" />
+  ${FAVICON}
+  <link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  ${HEADER}
+  <main>
+    <article class="article-wrap">
+      <div class="breadcrumb"><a href="/">Home</a> &nbsp;/&nbsp; Contact</div>
+      <header class="article-header">
+        <h1>Contact</h1>
+        <p class="dek">One address, read by a person: <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a>.</p>
+      </header>
+      <div class="prose">
+        <h2>If a page here is wrong</h2>
+        <p>Tell us and we will fix it. Every recall page is built from the official CPSC notice and
+        links to it — if this site disagrees with that notice, this site is wrong. Include the page
+        address and what is incorrect, and the correction gets made.</p>
+
+        <h2>If you own a recalled product</h2>
+        <p>Please contact the company running the recall, not us. Their phone number, email or
+        website is listed in the <strong>Contact</strong> row on each recall page, taken straight
+        from the CPSC notice. We are not the manufacturer, the retailer or the CPSC, and we cannot
+        arrange a refund, a repair or a replacement for you.</p>
+
+        <h2>If you are the company being recalled</h2>
+        <p>We publish the CPSC's public record and link to it. If the notice itself has been
+        updated or withdrawn, point us at the updated notice and we will match it.</p>
+
+        <h2>Privacy</h2>
+        <p>Questions about what this site does and does not collect are answered on the
+        <a href="/privacy/">privacy page</a>, and can be sent to the same address.</p>
       </div>
     </article>
   </main>
@@ -528,6 +586,8 @@ if (WRITE) {
   writeFileSync(path.join(ROOT, '404.html'), notFoundPage(items));
   mkdirSync(path.join(ROOT, 'privacy'), { recursive: true });
   writeFileSync(path.join(ROOT, 'privacy', 'index.html'), privacyPage());
+  mkdirSync(path.join(ROOT, 'contact'), { recursive: true });
+  writeFileSync(path.join(ROOT, 'contact', 'index.html'), contactPage());
   injectHome(items);
   writeSearchIndex(items);
   sitemap(items);
