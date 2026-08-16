@@ -106,8 +106,40 @@ async function mirrorImage(rec, slug) {
   } catch { return null; }
 }
 
+// ---------- ad slot ----------
+// ONE unit, injected verbatim from tools/recalls/ad-slot.html. Comments and whitespace do not
+// count as content, so an un-filled file emits NO markup — no empty box, no reserved gap. The
+// same slot is a desktop rail and a mobile in-content block, repositioned by CSS grid areas
+// rather than duplicated: two copies would load the unit twice and breach AdSense's own rules.
+const AD_HTML = (() => {
+  const f = path.join(HERE, 'ad-slot.html');
+  if (!existsSync(f)) return '';
+  const raw = readFileSync(f, 'utf8');
+  return raw.replace(/<!--[\s\S]*?-->/g, '').trim() ? raw.trim() : '';
+})();
+
+// ---------- rail links ----------
+// Deterministic only. "Same hazard" is an EXACT match on the stored hazard string — no fuzzy
+// matching, no brand guessing. We do not store a brand field, and deriving one from the first
+// word of a product name is exactly the kind of confident guess that produces wrong pairings;
+// an omitted block is honest, a wrongly-related recall is not.
+function railLinks(items, slug, hazard) {
+  const others = items.filter((i) => i.slug !== slug);
+  const sameHazard = hazard ? others.filter((i) => i.hazard === hazard).slice(0, 4) : [];
+  const seen = new Set(sameHazard.map((i) => i.slug));
+  const recent = others.filter((i) => !seen.has(i.slug)).slice(0, 6);
+  const block = (title, list) => (!list.length ? '' : `
+        <section class="rail-card">
+          <h2 class="rail-title">${esc(title)}</h2>
+          <ul class="rail-list">
+${list.map((i) => `            <li><a href="/recalls/${i.slug}/"><span class="rail-prod">${esc(clamp(i.prod, 60))}</span><span class="rail-date">${esc(i.date)}</span></a></li>`).join('\n')}
+          </ul>
+        </section>`);
+  return block('Same hazard', sameHazard) + block('Recent recalls', recent);
+}
+
 // ---------- page template ----------
-function recallPage(rec, slug, img) {
+function recallPage(rec, slug, img, items) {
   const prod = productName(rec);
   const hz = hazardShort(rec);
   const date = isoDay(rec.RecallDate);
@@ -156,22 +188,30 @@ ${img ? `  <meta property="og:image" content="${ORIGIN}${esc(img.rel)}" />\n` : 
 <body>
   ${HEADER}
   <main>
-    <article class="article-wrap">
+    <article class="recall-shell">
       <div class="breadcrumb"><a href="/">Home</a> &nbsp;/&nbsp; <a href="/recalls/">Recalls</a></div>
       <header class="article-header">
         <span class="chip chip-recall">Recall</span>
         <h1>${esc(prod)} Recall (${esc(monthYear(rec.RecallDate))})</h1>
         <p class="dek">${esc(clamp(hz.charAt(0).toUpperCase() + hz.slice(1), 160))}${units ? ` — about ${esc(units)} units.` : '.'}</p>
       </header>
-      <table class="recall-facts">
-        <tbody>
-${rows.map(([k, v]) => `          <tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('\n')}
-        </tbody>
-      </table>
-${img ? `      <figure class="recall-img"><img src="${esc(img.rel)}" alt="${esc(img.caption || prod + ' — recalled product')}" loading="lazy" />${img.caption ? `<figcaption>${esc(img.caption)}</figcaption>` : ''}</figure>\n` : ''}      <div class="prose">
-        <h2>What was recalled</h2>
-        <p>${esc(rec.Description)}</p>
-${remedy ? `        <h2>What to do</h2>\n        <p>Stop using the product. The listed remedy is: <strong>${esc(remedy)}</strong>. ${esc(rec.ConsumerContact || '')}</p>\n` : ''}        <p class="recall-source">Source: <a href="${esc(rec.URL)}" target="_blank" rel="noopener">the official CPSC recall notice</a>, published ${esc(date)}. Every fact on this page comes from that notice — if anything here disagrees with it, the notice wins.</p>
+      <div class="recall-layout">
+        <div class="rl-facts">
+          <table class="recall-facts">
+            <tbody>
+${rows.map(([k, v]) => `              <tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('\n')}
+            </tbody>
+          </table>
+        </div>
+${AD_HTML ? `        <aside class="rl-ad" aria-label="Advertisement">${AD_HTML}</aside>\n` : ''}        <div class="rl-body">
+${img ? `          <figure class="recall-img"><img src="${esc(img.rel)}" alt="${esc(img.caption || prod + ' — recalled product')}" loading="lazy" />${img.caption ? `<figcaption>${esc(img.caption)}</figcaption>` : ''}</figure>\n` : ''}          <div class="prose">
+            <h2>What was recalled</h2>
+            <p>${esc(rec.Description)}</p>
+${remedy ? `            <h2>What to do</h2>\n            <p>Stop using the product. The listed remedy is: <strong>${esc(remedy)}</strong>. ${esc(rec.ConsumerContact || '')}</p>\n` : ''}            <p class="recall-source">Source: <a href="${esc(rec.URL)}" target="_blank" rel="noopener">the official CPSC recall notice</a>, published ${esc(date)}. Every fact on this page comes from that notice — if anything here disagrees with it, the notice wins.</p>
+          </div>
+        </div>
+        <aside class="rl-rail">${railLinks(items || [], slug, hazardShort(rec))}
+        </aside>
       </div>
     </article>
   </main>
@@ -310,14 +350,16 @@ const fresh = REBUILD ? feed : feed.filter((r) => !state.seen[r.RecallID]);
 console.log(`feed: ${feed.length} recalls since ${since} · ${REBUILD ? 'REBUILD all' : 'new'}: ${fresh.length}`);
 if (!fresh.length && !WRITE) process.exit(0);
 
+// TWO PASSES, and the split is load-bearing. The rail's "same hazard" / "recent recalls" links
+// are built from state, so writing a page before the whole batch is in state means a CPSC batch
+// of five never cross-links — each page would only see the recalls that happened to precede it.
+// Pass 1 records everything; pass 2 renders against the complete picture.
 const newUrls = [];
+const prepared = [];
 for (const rec of fresh) {
   const slug = `${slugify(productName(rec))}-recall-${rec.RecallNumber}`;
   if (!WRITE) { console.log(`  would add: ${slug}`); continue; }
   const img = await mirrorImage(rec, slug);
-  const dir = path.join(ROOT, 'recalls', slug);
-  mkdirSync(dir, { recursive: true });
-  writeFileSync(path.join(dir, 'index.html'), recallPage(rec, slug, img));
   const models = [
     ...(rec.Products || []).map((p) => p.Model).filter(Boolean),
     ...(rec.ProductUPCs || []).map((u) => (typeof u === 'string' ? u : u?.UPC)).filter(Boolean),
@@ -329,7 +371,16 @@ for (const rec of fresh) {
     models,
   };
   if (!wasSeen) newUrls.push(`${ORIGIN}/recalls/${slug}/`);
-  console.log(`  + ${slug}`);
+  prepared.push({ rec, slug, img });
+}
+if (prepared.length) {
+  const all = Object.values(state.seen).sort((a, b) => b.date.localeCompare(a.date));
+  for (const { rec, slug, img } of prepared) {
+    const dir = path.join(ROOT, 'recalls', slug);
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, 'index.html'), recallPage(rec, slug, img, all));
+    console.log(`  + ${slug}`);
+  }
 }
 
 if (WRITE) {

@@ -171,6 +171,35 @@ h1,h2,h3{line-height:1.2;margin:0 0 .5em}
 .recall-img figcaption{font-size:.85rem;color:var(--gray);margin-top:.4rem}
 .recall-source{font-size:.9rem;color:var(--gray);border-top:1px solid var(--light);padding-top:1rem;margin-top:1.6rem}
 
+/* ---- recall page: two columns on desktop, one column on mobile ----------------------------
+   ONE ad slot in the DOM, repositioned by grid areas — never duplicated. On desktop it sits in
+   the 300px rail; on mobile it lands between the facts table and the article body, which is the
+   natural pause after the reader has their answer. A bottom banner would be below the fold on a
+   page most people leave once they have read the facts table.
+   The rail is not just ad housing: its links are internal linking on a DR-0 site, which is one
+   of the few ranking levers available, so it earns whether or not the slot is filled. */
+.recall-shell{max-width:1140px;margin:0 auto;padding:34px 22px 10px}
+.recall-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;column-gap:34px;align-items:start;
+  grid-template-areas:"facts ad" "body rail"}
+.rl-facts{grid-area:facts;min-width:0}
+.rl-ad{grid-area:ad;min-width:0;margin:0 0 1.4rem}
+.rl-body{grid-area:body;min-width:0}
+.rl-rail{grid-area:rail;min-width:0;position:sticky;top:16px}
+.rail-card{background:var(--white);border:1px solid var(--light);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;margin:0 0 1.1rem}
+.rail-title{font-size:.82rem;letter-spacing:.06em;text-transform:uppercase;color:var(--gray);font-weight:800;margin:0 0 .6rem}
+.rail-list{list-style:none;margin:0;padding:0}
+.rail-list li+li{border-top:1px solid var(--light)}
+.rail-list a{display:block;padding:.5rem 0;color:var(--ink);line-height:1.35}
+.rail-list a:hover{color:var(--orange)}
+.rail-prod{display:block;font-size:.93rem;font-weight:600}
+.rail-date{display:block;font-size:.8rem;color:var(--gray);margin-top:.15rem}
+@media(max-width:900px){
+  /* Single column, and the ad moves to just after the facts table. Same element, same unit. */
+  .recall-layout{grid-template-columns:1fr;grid-template-areas:"facts" "ad" "body" "rail"}
+  .rl-rail{position:static;margin-top:1.6rem}
+  .recall-shell{padding-top:24px}
+}
+
 /* ── Ticker — the "last 5 recalls" strip (his idea, right for the genre) ── */
 .ticker{display:flex;align-items:center;background:var(--navy-deep);border-bottom:1px solid rgba(255,255,255,.08);overflow:hidden}
 .ticker-label{flex:0 0 auto;background:var(--red);color:#fff;font-size:.72rem;font-weight:800;letter-spacing:.08em;padding:.45rem .8rem}

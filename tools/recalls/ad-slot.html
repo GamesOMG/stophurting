@@ -1,0 +1,18 @@
+<!--
+  PASTE YOUR GOOGLE ADSENSE UNIT HERE — everything between these comment markers is injected
+  verbatim into every recall page, in the one slot that is a right-hand rail on desktop and an
+  in-content block on mobile (after the facts table, before "What was recalled").
+
+  Until real code is pasted below, build.mjs treats this file as EMPTY and emits no ad markup at
+  all — no empty box, no reserved gap, no stray container. Comments and whitespace do not count
+  as content, so this note can stay where it is once your unit is added.
+
+  It is ONE unit shared by both layouts on purpose: the same slot is repositioned with CSS grid
+  areas rather than duplicated. Two copies would load the unit twice and put the page in breach
+  of AdSense's own rules about identical units.
+
+  A 300x250 or a responsive unit both fit; the rail column is 300px wide on desktop.
+
+  After pasting, regenerate every page with:
+    node tools/recalls/build.mjs --rebuild --write
+-->
