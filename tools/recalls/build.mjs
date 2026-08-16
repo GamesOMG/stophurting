@@ -240,7 +240,7 @@ ${AD_HTML ? `          <div class="rl-ad" aria-label="Advertisement">${AD_HTML}<
 
 // ---------- hub + homepage + sitemap ----------
 const SEAL = `<svg viewBox="0 0 24 26" aria-hidden="true"><path d="M12 1l10 4v7c0 6.5-4.3 11.3-10 13C6.3 23.3 2 18.5 2 12V5l10-4z" fill="#e07b39"/><path d="M7.5 12.5l3 3 6-6" stroke="#16334f" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-const HEADER = `<header class="site-header"><div class="wrap header-inner"><a class="brand" href="/"><span class="brand-mark">${SEAL}</span><span class="brand-name">Stop<span class="brand-accent">Hurting</span></span></a><nav class="nav"><a href="/recalls/">Recalls</a><a href="/myths/">Myth Checks</a><a href="/about/">About</a></nav></div></header>`;
+const HEADER = `<header class="site-header"><div class="wrap header-inner"><a class="brand" href="/"><span class="brand-mark">${SEAL}</span><span class="brand-name">Stop<span class="brand-accent">Hurting</span></span></a><nav class="nav"><a href="/recalls/">Recalls</a><a href="/updates/">Corrections</a><a href="/myths/">Myth Checks</a><a href="/about/">About</a></nav></div></header>`;
 // ⭐ The footer links are not decoration: AdSense expects a reachable privacy policy and a way to
 // contact the site owner, and their absence is a standard site-level rejection.
 // ⭐ Not decoration: AdSense expects a reachable privacy policy and a way to contact the owner,
@@ -554,9 +554,11 @@ ${items.slice(0, 15).map(row).join('\n')}
 // on 4 pages out of 154 — including NOT the homepage, which is exactly where an AdSense reviewer
 // starts. Jason spotted it by looking; no check we had could see it, because every page did have
 // *a* footer.
-// This rewrites the footer block in every HTML file in the repo, generated or not, so the two
-// links AdSense expects can never again exist on only part of the site. Idempotent: running it
-// twice changes nothing.
+// This rewrites the header AND footer blocks in every HTML file in the repo, generated or not,
+// so site chrome can never again exist on only part of the site. Idempotent.
+// ⭐ The header matters as much as the footer now: Jason's call is that a transparency link
+// buried in footer small print is not transparency — "sites that bury their links in small print
+// on the bottom are not really being transparent" — so Corrections lives in the nav.
 function syncFooters() {
   const skip = new Set(['node_modules', '.git', 'tools', 'assets', '_port']);
   const files = [];
@@ -569,7 +571,9 @@ function syncFooters() {
   let changed = 0;
   for (const f of files) {
     const html = readFileSync(f, 'utf8');
-    const next = html.replace(/<footer class="site-footer">[\s\S]*?<\/footer>/, FOOTER);
+    const next = html
+      .replace(/<header class="site-header">[\s\S]*?<\/header>/, HEADER)
+      .replace(/<footer class="site-footer">[\s\S]*?<\/footer>/, FOOTER);
     if (next !== html) { writeFileSync(f, next); changed++; }
   }
   return { scanned: files.length, changed };

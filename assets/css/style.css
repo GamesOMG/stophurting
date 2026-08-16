@@ -138,7 +138,12 @@ h1,h2,h3{line-height:1.2;margin:0 0 .5em}
 .footer-fine{font-size:.85rem;color:#8fa2b5;margin:0}
 
 @media(max-width:560px){
-  .nav{gap:.9rem;font-size:.9rem}
+  /* Four nav items (Recalls · Corrections · Myth Checks · About) will not fit beside the brand
+     on a 375px phone. Let the header wrap rather than overflow, and let the nav scroll sideways
+     if it still cannot fit — the alternative is a link pushed off-screen, which for the
+     transparency link would defeat the point of moving it out of the footer. */
+  .header-inner{flex-wrap:wrap;height:auto;padding:10px 0;gap:6px}
+  .nav{gap:.9rem;font-size:.9rem;overflow-x:auto;max-width:100%;padding-bottom:2px}
   .search-box{flex-direction:column}
 }
 
