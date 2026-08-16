@@ -698,8 +698,19 @@ export const SOURCES = {
     agencyShort: 'ACCC',
     noticeName: 'Product Safety Australia recall notice',
     hubCrumb: 'Australian recalls',
-    attribution: 'Source: ACCC © Commonwealth of Australia, used under '
-      + '<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener nofollow">CC BY 4.0</a>.',
+    // ⭐⭐ CC BY 4.0 §3(a)(1)(A) LISTS SIX THINGS, and we were carrying four. The two missing ones,
+    // found by reading the legal code rather than the summary:
+    //   (v)  "indicate if You modified the Licensed Material" — and we DO modify: we extract
+    //        fields, reformat them into our own page, and shorten the hazard for cards. The ACCC
+    //        even supplies the wording for it: "Source: Based on ACCC data".
+    //   (iv) "a notice that refers to the disclaimer of warranties" — the licence disclaims them,
+    //        and a reuser has to say so rather than let a reader assume we warrant the content.
+    // The remaining four were already present: creator, copyright notice, a notice referring to
+    // the licence, and a link to the licensed material (every page links its source notice).
+    attribution: 'Based on ACCC data — Source: ACCC © Commonwealth of Australia, used under '
+      + '<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener nofollow">CC BY 4.0</a>'
+      + ' and reformatted for this page. Provided without warranties: see '
+      + '<a href="/licensing/">licensing &amp; attribution</a>.',
     footerCredit: 'Australian recall data © Commonwealth of Australia (ACCC), CC BY 4.0',
     // ⭐ The ACCC publishes no revision date, so the CPSC comparison has nothing to compare. The
     // RSS carries the entire notice body, so we hash it — which catches ANY edit (a corrected

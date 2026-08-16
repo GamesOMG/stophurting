@@ -71,7 +71,7 @@ const MUTATIONS = [
     file: 'sources.mjs',
     find: "footerCredit: 'Australian recall data © Commonwealth of Australia (ACCC), CC BY 4.0',",
     replace: "footerCredit: 'Australian recall data (public domain)',",
-    expect: 'the licence credit names the ACCC',
+    expect: 'carries every attribution condition CC BY 4.0 lists',
     why: 'CC BY 4.0 requires attribution — dropping it is a licence breach, not a wording preference',
   },
   {
@@ -81,6 +81,14 @@ const MUTATIONS = [
     replace: "    units: '1,000',",
     expect: 'omits a units row entirely rather than inventing one',
     why: 'a fabricated unit count on a safety page is the exact failure this repo keeps paying for',
+  },
+  {
+    name: 'AU modification indication dropped',
+    file: 'sources.mjs',
+    find: "    attribution: 'Based on ACCC data — Source: ACCC © Commonwealth of Australia, used under '",
+    replace: "    attribution: 'Source: ACCC © Commonwealth of Australia, used under '",
+    expect: 'carries every attribution condition CC BY 4.0 lists',
+    why: 'CC BY 4.0 §3(a)(1)(A)(v) requires indicating modification, and we do modify — this is the exact state the site shipped in until it was audited',
   },
   // ── Canada ────────────────────────────────────────────────────────────────────────────────
   {

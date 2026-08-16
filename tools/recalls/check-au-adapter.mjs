@@ -15,6 +15,7 @@
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
 import { SOURCES, sourceFor, auParseFeed, sanitize } from './sources.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -198,11 +199,42 @@ check('every source declares the config the build reads', () => {
   }
 });
 
-check('the licence credit names the ACCC, because CC BY 4.0 requires it', () => {
-  has(SOURCES.au.footerCredit, 'Commonwealth of Australia', 'attribution is a licence condition, not a courtesy');
-  has(SOURCES.au.footerCredit, 'CC BY 4.0', '');
-  has(SOURCES.au.attribution, 'creativecommons.org/licenses/by/4.0', 'the attribution has to link the licence it claims');
+// ⭐⭐ CC BY 4.0 §3(a)(1)(A) is a list of SIX conditions, and we shipped four of them. Reading the
+// legal code rather than the human-readable summary found the two missing:
+//   · "indicate if You modified the Licensed Material" — we extract, reformat and shorten, so we
+//     do modify. The ACCC names the wording itself: "Based on ACCC data".
+//   · "a notice that refers to the disclaimer of warranties".
+// ⛔ Not cosmetic: CC BY terminates automatically on failure to comply.
+check('carries every attribution condition CC BY 4.0 lists, not just the credit', () => {
+  const a = SOURCES.au.attribution;
+  has(a, 'Commonwealth of Australia', 'the copyright notice');
+  has(a, 'Based on ACCC data', 'the modification indication, in the wording the ACCC asks for');
+  has(a, 'reformatted', 'say plainly that the arrangement is ours');
+  has(a, 'without warranties', 'a notice referring to the disclaimer of warranties');
+  has(a, 'creativecommons.org/licenses/by/4.0', 'a notice referring to the licence, and a link to it');
   hasNot(SOURCES.au.footerCredit, 'public domain', 'ACCC material is licensed, not public domain — the CPSC wording must not leak onto it');
+});
+
+// 🪤 THE CONFIG BEING RIGHT IS NOT THE PAGE BEING RIGHT. When the attribution was corrected, the
+// 25 Australian pages kept the old wording for a full build — nothing about those records had
+// changed, so nothing re-rendered them, and the config-only assertion above went green over live
+// pages that were still non-compliant. Read the built page.
+check('the corrected attribution actually reached the built pages', () => {
+  const page = readFileSync(path.join(HERE, '..', '..', 'au', 'recalls',
+    'nevenka-baby-pull-string-giraffe-toy-recall', 'index.html'), 'utf8');
+  has(page, 'Based on ACCC data', 'a built Australian page must carry the modification indication');
+  has(page, 'without warranties', 'and the disclaimer-of-warranties notice');
+  has(page, 'href="/licensing/"', '');
+});
+
+check('every Australian page links the licensed material itself', () => {
+  // CC BY 4.0 also asks for "a URI or hyperlink to the Licensed Material to the extent reasonably
+  // practicable" — the original notice, not just the licence.
+  for (const r of recs) {
+    if (!r.url.startsWith('https://www.productsafety.gov.au/')) {
+      throw new Error(`${r.slug}: no link back to the ACCC notice this page was built from`);
+    }
+  }
 });
 
 // ── the sanitiser ──────────────────────────────────────────────────────────────────────────

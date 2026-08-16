@@ -637,6 +637,21 @@ function licensingPage() {
       <div class="prose">
 ${blocks}
 
+        <h2>We reformat, and this is us saying so</h2>
+        <p>Every page here is built from a regulator's own record, but it is not a copy of their
+        page. We pull out the fields that answer "do I own this, and what do I do", lay them out
+        our way, and shorten the hazard to a phrase for listings and cards. Nothing is added, and
+        nothing is rewritten to mean something else — but the arrangement is ours, so the material
+        is modified within the meaning of these licences. CC BY 4.0 requires that to be stated;
+        the ACCC's own guidance is to say <em>Based on ACCC data</em>, which is what our Australian
+        pages say. Where anything here differs from the official notice, the notice is right.</p>
+
+        <h2>No warranties</h2>
+        <p>The licences above supply this information without warranties of any kind, and neither
+        the regulators nor this site guarantee that a page is accurate, complete or current. This
+        is a signpost to an official notice, not a substitute for one — and not legal, safety or
+        medical advice. Every recall page links to the original; check it before acting.</p>
+
         <h2>Not an official source, and not endorsed by anyone</h2>
         <p>StopHurting is an independent site. It is not a government body, it is not affiliated
         with any of the organisations above, and nothing here should be read as suggesting that
