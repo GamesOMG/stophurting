@@ -251,6 +251,11 @@ h1,h2,h3{line-height:1.2;margin:0 0 .5em}
 .ticker-track{display:inline-flex;align-items:center;gap:2.2rem;padding-left:1.5rem;animation:tickscroll 55s linear infinite;will-change:transform}
 .ticker:hover .ticker-track{animation-play-state:paused}
 .ticker-track a{color:#c8d4e0;font-size:.88rem;white-space:nowrap}
+/* Country tag in the scroller. Tabular, boxed and dim so it reads as a label rather than part of
+   the product name — a reader scanning past should be able to skip it or use it, not trip on it. */
+.tk-cc{display:inline-block;margin-right:.5rem;padding:.08rem .34rem;border:1px solid rgba(255,255,255,.22);
+  border-radius:4px;font-size:.68rem;font-weight:800;letter-spacing:.06em;color:#8fa2b5;vertical-align:1px}
+.ticker-track a:hover .tk-cc{color:var(--orange);border-color:var(--orange)}
 .ticker-track a:hover{color:#fff}
 .ticker-sep{color:var(--orange);font-size:.8rem}
 @keyframes tickscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}

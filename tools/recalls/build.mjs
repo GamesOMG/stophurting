@@ -270,9 +270,15 @@ function card(r) {
 function row(r) {
   return `        <li><a class="r-row" href="/recalls/${r.slug}/"><span class="r-date">${esc(r.date)}</span><span class="r-prod">${esc(r.prod)}</span><span class="r-hazard">${esc(clamp(r.hazard, 90))}</span></a></li>`;
 }
+// ⭐ Country tag on every ticker entry. Today everything is US, so it reads "US" throughout and
+// looks redundant — that is deliberate. Once Canada, the UK and Australia land, a reader scanning
+// the scroller needs to know at a glance whether a recall applies to them, and retrofitting a
+// distinguishing mark AFTER people have learned to read the strip without one is worse than
+// having it look obvious for a while.
+// `country` is read off the record with a US default, so no state migration is needed.
 function ticker(items) {
   const five = items.slice(0, 5)
-    .map((r) => `<a href="/recalls/${r.slug}/">${esc(r.prod)} — ${esc(clamp(r.hazard, 60))}</a>`)
+    .map((r) => `<a href="/recalls/${r.slug}/"><span class="tk-cc">${esc((r.country || 'us').toUpperCase())}</span>${esc(r.prod)} — ${esc(clamp(r.hazard, 60))}</a>`)
     .join('<span class="ticker-sep">•</span>');
   return `<div class="ticker" aria-label="Latest recalls"><span class="ticker-label">LATEST</span><div class="ticker-clip"><div class="ticker-track">${five}<span class="ticker-sep">•</span>${five}</div></div></div>`;
 }
