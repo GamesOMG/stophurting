@@ -531,6 +531,133 @@ function caImage(page) {
   return null;
 }
 
+// ---------- source: United Kingdom ----------
+// A FOURTH SHAPE: a search API for discovery, a content API for the record. Both JSON, both
+// official, and the record is the best-structured of any source so far — a summary, a product
+// table, a hazard and a corrective action, plus typed metadata.
+//
+// ⛔⛔ ONLY REAL RECALLS ARE PUBLISHED. The endpoint mixes three kinds of notice:
+//     product-recall          1,540   ← published
+//     product-safety-report   2,076   ← NOT published
+//     product-safety-alert        8   ← published
+// Of the reports, 1,160 are `import-rejected-at-border`: the goods were stopped at the frontier
+// and never reached a consumer. Our pages are titled "<product> Recall". Publishing a border
+// rejection under that heading is simply false, and accuracy is the only asset this site has.
+// ⚠ Measured 2026-08-16, and the filter is the API's own, not ours — the counts above come from
+// `filter_product_alert_type`, so this is a server-side selection rather than a guess at titles.
+const UK_BASE = 'https://www.gov.uk';
+const UK_TYPES = ['product-recall', 'product-safety-alert'];
+const UK_WINDOW_DAYS = 90;
+
+// gov.uk bodies are clean semantic HTML with <h2 id="..."> section anchors, so sections can be
+// split on the headings the publisher actually wrote rather than on guessed prose boundaries.
+function ukSection(body, id) {
+  const re = new RegExp(`<h2[^>]*id="${id}"[^>]*>[\\s\\S]*?</h2>([\\s\\S]*?)(?=<h2|$)`, 'i');
+  return (body.match(re) || [])[1] || '';
+}
+// The Product information block is a two-column table of label/value pairs, with the product TYPE
+// sitting in the header row rather than the body — a quirk worth reading off explicitly instead of
+// wondering later why "Type" is always missing.
+function ukTable(body) {
+  const html = ukSection(body, 'product-information');
+  const out = {};
+  const type = html.match(/<th[^>]*scope="col"[^>]*>Type<\/th>\s*<th[^>]*>([\s\S]*?)<\/th>/i);
+  if (type) out.Type = stripTags(type[1]);
+  for (const m of html.matchAll(/<tr>\s*<td>([\s\S]*?)<\/td>\s*<td>([\s\S]*?)<\/td>\s*<\/tr>/gi)) {
+    const k = stripTags(m[1]);
+    const v = stripTags(m[2]);
+    if (k && v) out[k] = v;
+  }
+  return out;
+}
+// The summary block states Product / Hazard / Corrective action as labelled paragraphs. The
+// hazard sentence there is already the short form — the standalone Hazard section is the long one.
+function ukSummaryLine(body, label) {
+  const sum = ukSection(body, 'summary');
+  const m = sum.match(new RegExp(`<p>\\s*${label}:\\s*([\\s\\S]*?)</p>`, 'i'));
+  return m ? stripTags(m[1]) : '';
+}
+
+export function ukToCanonical(item, doc) {
+  const body = doc?.details?.body || '';
+  const meta = doc?.details?.metadata || {};
+  const table = ukTable(body);
+  // "Product Recall: Eurowrap 25pk Blue Party Balloons (2608-0108)" → product, then the reference.
+  const rawTitle = String(doc?.title || item.title || '');
+  const num = (rawTitle.match(/\(([\dA-Za-z-]+)\)\s*$/) || [])[1] || '';
+  const prod = (ukSummaryLine(body, 'Product') || rawTitle)
+    .replace(/^Product (?:Recall|Safety Alert|Safety Report):\s*/i, '')
+    .replace(/\s*\([\dA-Za-z-]+\)\s*$/, '').trim();
+  // 🪤 THE SUMMARY LINE, NOT THE HAZARD SECTION, for the fact table. Reading a rendered page
+  // caught it: the section runs several sentences, so the row was clamped mid-word at 300 chars
+  // ("…exposed to them when touching or putting the product in the mouth. The…") and then the
+  // body repeated the whole thing verbatim two inches below. OPSS writes a one-sentence summary
+  // for precisely this job. The full section still renders as "Why it was recalled".
+  const hazardRow = ukSummaryLine(body, 'Hazard') || stripTags(ukSection(body, 'hazard'));
+  const hazard = ukHazardShort(hazardRow);
+  const date = isoDay(meta.product_recall_alert_date || item.public_timestamp);
+  const pretty = (s) => String(s || '').replace(/-/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+  const risk = pretty(meta.product_risk_level === 'not-provided' ? '' : meta.product_risk_level);
+  const url = UK_BASE + (doc?.base_path || item.link);
+
+  return {
+    id: `uk-${num || (item.link || '').split('/').pop()}`,
+    country: 'uk',
+    slug: `${slugify(deaccent(prod))}-recall${num ? `-${num.toLowerCase()}` : ''}`,
+    num,
+    date,
+    modified: isoDay(doc?.public_updated_at || item.public_timestamp),
+    prod,
+    hazard,
+    units: '',
+    url,
+    contact: '',
+    // ⛔ NO IMAGE, and this is a fact about the source rather than a gap in the parser: measured
+    // across 12 consecutive notices, every one had zero inline images and a single PDF
+    // attachment titled "Link to Product Image and PDF". The photograph exists only inside that
+    // PDF. Rendering a PDF page would produce a picture of a DOCUMENT, not of the product, so
+    // build.mjs gives imageless records a typographic card instead of a broken or misleading one.
+    image: null,
+    cat: pretty(meta.product_category),
+    models: [table['Batch/Lot Number'], table['SKU/Product Code'], table['Model Number'], prod]
+      .filter(Boolean).join(' ').slice(0, 400),
+    rows: [
+      ['What', prod],
+      table.Brand && ['Brand', table.Brand],
+      ['The hazard', clamp(hazardRow, 300)],
+      table.Type && ['Product type', table.Type],
+      table['Batch/Lot Number'] && ['Batch / lot', table['Batch/Lot Number']],
+      table['SKU/Product Code'] && ['SKU / product code', table['SKU/Product Code']],
+      table['Country of Origin'] && ['Made in', table['Country of Origin']],
+      risk && ['Risk level', risk],
+      ['Issued by', 'Office for Product Safety and Standards'],
+      ['Recall date', date + (num ? ` (notice ${num})` : '')],
+    ].filter(Boolean),
+    sections: [
+      table['Product Description'] && { h2: 'What was recalled', html: `<p>${escText(table['Product Description'])}</p>` },
+      ukSection(body, 'hazard') && { h2: 'Why it was recalled', html: sanitize(ukSection(body, 'hazard'), UK_BASE) },
+      ukSection(body, 'corrective-action') && { h2: 'What to do', html: sanitize(ukSection(body, 'corrective-action'), UK_BASE) },
+    ].filter(Boolean),
+    dek: clamp(hazard.charAt(0).toUpperCase() + hazard.slice(1), 160) + '.',
+    desc: fits(158, [
+      `${prod} recalled in the UK: ${hazard}. What was sold, the batch numbers, and what to do — from the official OPSS notice.`,
+      `${prod} recalled in the UK: ${hazard}. What to do, from the official OPSS notice.`,
+      `${prod} recalled in the UK: ${hazard}.`,
+      `${clamp(prod, 80)} recalled in the UK. The hazard, the batch numbers, and what to do.`,
+    ]),
+  };
+}
+// OPSS phrases every hazard as "The product presents a serious chemical risk because …". Strip
+// their stock opening so a card reads "serious chemical risk" rather than four identical words on
+// every tile, and cut at the explanation — the full sentence still appears in the fact table.
+function ukHazardShort(full) {
+  let s = String(full).trim()
+    .replace(/^The product presents?\s+(?:a|an)\s+/i, '')
+    .replace(/^There is\s+(?:a|an)\s+/i, '');
+  s = s.split(/\s+because\s+|\s+as it\s+|\.\s|;\s/)[0].trim().replace(/[.,]$/, '');
+  return clamp(s, 90) || 'safety hazard';
+}
+
 // ---------- the registry ----------
 export const SOURCES = {
   us: {
@@ -592,6 +719,7 @@ export const SOURCES = {
     // have ever built for Australia. With this true, the first run would report the whole
     // country withdrawn.
     completeWindow: false,
+    windowNote: 'the ACCC publishes a rolling 25 items with NO archive, so every page we hold beyond those 25 is "absent" on every single run.',
     hubTitle: 'Australian Product Recalls — StopHurting',
     hubHeading: 'Australian product recalls',
     hubDesc: (n) => `Australian consumer product recalls — what was recalled, the hazard, and what to do, from the ACCC's official Product Safety Australia notices. ${n} tracked.`,
@@ -643,6 +771,7 @@ export const SOURCES = {
     // ⚠ The file's `Archived` column is the honest future hook for status changes — but archived
     // on canada.ca means closed/old, NOT withdrawn, so it must not be published as one.
     completeWindow: false,
+    windowNote: 'the file IS the complete archive, but this adapter selects two lanes inside a 90-day window — absence describes our own filter, not a withdrawal.',
     revisionKey: 'modified',
     hubTitle: 'Canadian Product Recalls — StopHurting',
     hubHeading: 'Canadian product recalls',
@@ -664,6 +793,73 @@ export const SOURCES = {
           ? loadFixture(fixtures, `ca-page-${row.nid}.html`, true)
           : await fetchText(row.url).catch(() => '');
         out.push(caToCanonical(row, pageHtml));
+      }
+      return out;
+    },
+  },
+
+  uk: {
+    cc: 'uk',
+    country: 'United Kingdom',
+    countryIn: 'the UK',
+    agency: 'Office for Product Safety and Standards',
+    agencyShort: 'OPSS',
+    noticeName: 'OPSS product recall notice',
+    hubCrumb: 'UK recalls',
+    // ⚠ Open Government Licence v3.0. Its attribution clause specifies this exact sentence, and
+    // like Canada's OGL it excludes departmental logos, crests and the Royal Arms — none of which
+    // appear on our pages — and forbids suggesting official status or endorsement.
+    attribution: 'Contains public sector information licensed under the '
+      + '<a href="https://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/" target="_blank" rel="noopener nofollow">Open Government Licence v3.0</a>.',
+    footerCredit: 'UK recall data licensed under the Open Government Licence v3.0',
+    // ⛔ FALSE, for the Canadian reason rather than the Australian one: gov.uk holds the whole
+    // archive, but this adapter asks only for two alert types inside a 90-day window, so absence
+    // from what it returned describes our own filter and says nothing about a withdrawal.
+    completeWindow: false,
+    windowNote: 'gov.uk holds the whole archive, but this adapter asks only for two alert types inside a 90-day window — absence describes our own filter, not a withdrawal.',
+    revisionKey: 'modified',
+    hubTitle: 'UK Product Recalls — StopHurting',
+    hubHeading: 'UK product recalls',
+    hubDesc: (n) => `UK consumer product recalls — what was recalled, the hazard, the batch numbers, and what to do, from the official OPSS notices. ${n} tracked.`,
+    hubIntro: (n) => `From the Office for Product Safety and Standards' official notices — what was recalled, why it's dangerous, and what to do about it. ${n} tracked. Product safety reports, including goods stopped at the border, are deliberately not listed here: those were never sold to anyone.`,
+    async fetch({ known = new Map(), fixtures = null, rebuild = false, today = new Date().toISOString().slice(0, 10) } = {}) {
+      const cutoff = new Date(new Date(today + 'T12:00:00Z').getTime() - UK_WINDOW_DAYS * 864e5)
+        .toISOString().slice(0, 10);
+      let list;
+      if (fixtures) {
+        list = JSON.parse(loadFixture(fixtures, 'uk-search.json')).results;
+      } else {
+        // Paginate until the results fall out of the window. The API caps `count` at 100, and the
+        // window is the only honest stop condition — a fixed page count would silently drop the
+        // tail of a busy quarter.
+        list = [];
+        for (const type of UK_TYPES) {
+          for (let start = 0; start < 1000; start += 100) {
+            const u = `${UK_BASE}/api/search.json?filter_content_store_document_type=product_safety_alert_report_recall`
+              + `&filter_product_alert_type=${type}&count=100&start=${start}&order=-public_timestamp`
+              + '&fields=title,link,description,public_timestamp';
+            const page = JSON.parse(await fetchText(u)).results;
+            list.push(...page);
+            if (!page.length || isoDay(page[page.length - 1].public_timestamp) < cutoff) break;
+          }
+        }
+      }
+      const inWindow = list.filter((r) => isoDay(r.public_timestamp) >= cutoff);
+      const out = [];
+      for (const item of inWindow) {
+        // The search result's timestamp is the revision marker, so an unchanged notice costs no
+        // content-API call. Matched on the notice URL rather than an id, because the id is derived
+        // from the reference number, which only the full document reliably carries.
+        const prev = [...known.values()].find((p) => p.url && p.url.endsWith(item.link));
+        if (!rebuild && prev && prev.modified === isoDay(item.public_timestamp)) {
+          out.push({ ...prev, unchanged: true });
+          continue;
+        }
+        const doc = fixtures
+          ? (() => { const t = loadFixture(fixtures, `uk-doc-${(item.link || '').split('/').pop()}.json`, true); return t ? JSON.parse(t) : null; })()
+          : await fetchText(`${UK_BASE}/api/content${item.link}`).then(JSON.parse).catch(() => null);
+        if (!doc) continue;   // a notice we cannot read is a notice we do not publish
+        out.push(ukToCanonical(item, doc));
       }
       return out;
     },

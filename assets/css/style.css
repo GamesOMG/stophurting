@@ -125,6 +125,17 @@ h1,h2,h3{line-height:1.2;margin:0 0 .5em}
 .r-card:hover{transform:translateY(-2px);border-color:#cfd9e4;box-shadow:0 6px 20px rgba(22,51,79,.10);color:var(--ink)}
 .r-card-img{display:block;background:#fff;border-bottom:1px solid var(--light)}
 .r-card-img img{width:100%;height:172px;object-fit:contain;padding:12px;display:block}
+/* ⭐ The tile for sources that publish NO product photograph. Measured across 12 consecutive UK
+   notices: zero inline images, one PDF attachment named "Link to Product Image and PDF" — the
+   photo exists only inside that PDF, and rendering a PDF page would show a DOCUMENT, not a
+   product. So the card keeps its exact height and shows the category instead, which at least
+   answers "what kind of thing is this". Saying "no photo published" out loud is the honest move:
+   a reader can tell a blank card from a broken one, and this is neither. */
+.r-card-noimg{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.3rem;
+  height:172px;padding:12px;text-align:center;background:linear-gradient(160deg,#f4f7fa,#e9eff5)}
+.r-card-cat{font-size:1rem;font-weight:800;color:var(--navy);line-height:1.25}
+.r-card-noimg-note{font-size:.72rem;color:var(--gray-soft)}
+@media(max-width:560px){.r-card-noimg{height:120px}}
 .r-card-body{display:flex;flex-direction:column;gap:.3rem;padding:.85rem .95rem 1rem}
 .r-card-prod{font-weight:700;font-size:1rem;line-height:1.28}
 .r-card-hazard{font-size:.86rem;color:var(--gray);line-height:1.35}

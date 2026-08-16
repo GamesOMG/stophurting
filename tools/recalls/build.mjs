@@ -262,9 +262,26 @@ const FAVICON = `<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://ww
 // that country and a repeated badge is noise. ON wherever countries are mixed — the homepage and
 // search results — because an unbadged Australian recall on a US reader's screen sends them to a
 // phone number they cannot call. Same rule the ticker already follows.
+// ⭐ IMAGELESS SOURCES GET A DESIGNED TILE, NOT A BROKEN IMAGE. Measured across 12 consecutive UK
+// notices: every one has zero inline images and a single PDF attachment titled "Link to Product
+// Image and PDF" — the photograph exists only inside that PDF. Rendering a PDF page would produce
+// a picture of a DOCUMENT rather than of the product, which is worse than admitting we have none.
+// So the card keeps its shape and height and shows the product category instead. This also
+// hardens every other country: a US or Canadian record whose mirror failed used to emit an <img>
+// pointing at a file that was never written.
+// ⛔ `hasImg` is decided by what is RECORDED IN STATE, not by guessing a path exists.
+function cardImage(r) {
+  if (r.img) return `<img src="${esc(r.img)}" alt="${esc(r.prod)}" loading="lazy" width="400" height="300" />`;
+  if (cc(r) === 'us' || cc(r) === 'au') {
+    // Pre-dating the stored `img` field: these countries mirrored every photo, and the path is
+    // deterministic. Newer records carry `img` explicitly.
+    return `<img src="/assets/img/recalls/${esc(r.slug)}/1.webp" alt="${esc(r.prod)}" loading="lazy" width="400" height="300" />`;
+  }
+  return `<span class="r-card-noimg"><span class="r-card-cat">${esc(r.cat || 'Recall')}</span><span class="r-card-noimg-note">no photo published</span></span>`;
+}
 function card(r, showCc = false) {
   return `        <a class="r-card" href="${recallPath(r)}">
-          <span class="r-card-img"><img src="${esc(r.img || `/assets/img/recalls/${r.slug}/1.webp`)}" alt="${esc(r.prod)}" loading="lazy" width="400" height="300" /></span>
+          <span class="r-card-img">${cardImage(r)}</span>
           <span class="r-card-body">
             <span class="r-card-prod">${showCc ? `<span class="r-card-cc">${esc(cc(r).toUpperCase())}</span>` : ''}${esc(clamp(r.prod, 64))}</span>
             <span class="r-card-hazard">${esc(clamp(r.hazard, 70))}</span>
@@ -818,7 +835,12 @@ for (const country of TARGETS) {
       console.log('');
     }
   } else {
-    console.log(`${country.toUpperCase()}: withdrawal check OFF — ${src.agencyShort} publishes a rolling window with no archive, so "absent from the feed" says nothing about withdrawal.`);
+    // ⚠ THE REASON IS THE SOURCE'S TO STATE. This line was hardcoded to Australia's situation —
+    // "publishes a rolling window with no archive" — and stayed that way when Canada and the UK
+    // turned the check off for the OPPOSITE reason: both publish a complete archive, and it is
+    // our own lane and window filtering that makes absence meaningless. Printing Australia's
+    // excuse under a UK heading is a small lie that would have been quoted back as a fact.
+    console.log(`${country.toUpperCase()}: withdrawal check OFF — ${src.windowNote}`);
   }
 
   console.log(`${country.toUpperCase()} feed: ${records.length} record(s) · ${REBUILD ? 'REBUILD all' : 'new'}: ${fresh.length - amendedList.length} · amended: ${amendedList.length}`);
@@ -838,6 +860,7 @@ for (const country of TARGETS) {
       slug: rec.slug, prod: rec.prod, hazard: rec.hazard,
       date: rec.date, modified: rec.modified, num: rec.num,
       models: rec.models,
+      ...(rec.cat ? { cat: rec.cat } : {}),
       ...(rec.hash ? { hash: rec.hash } : {}),
       ...(img ? { img: img.rel } : {}),
       ...(amendedAt ? { amendedAt } : {}),

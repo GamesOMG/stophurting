@@ -200,6 +200,10 @@ check('declares the config build.mjs reads', () => {
     if (!s[f]) throw new Error(`source "ca" has no ${f} — build.mjs would render "undefined" onto a live page`);
   }
   eq(typeof s.completeWindow, 'boolean', 'completeWindow must be declared explicitly');
+  // ⚠ A source that turns the withdrawal check off must SAY WHY, in its own words. The build
+  // printed Australia's reason ("a rolling window with no archive") under every country's
+  // heading, including two whose archives are complete and whose real reason is our own filter.
+  if (!s.completeWindow && !s.windowNote) throw new Error('a source that disables withdrawal detection must declare windowNote — otherwise the build prints another country\'s excuse');
   eq(sourceFor('ca').cc, 'ca', '');
 });
 
