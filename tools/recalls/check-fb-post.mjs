@@ -68,7 +68,7 @@ run('rail1-first-run-posts-nothing', {
 }, (out) => {
   must(out, 'FIRST RUN', 'the watermark run must announce itself');
   must(out, 'recorded 2 existing recalls as backfill', 'it must claim exactly what it saw');
-  mustNot(out, 'Recalled: Thing', 'a first run must never compose a post');
+  mustNot(out, 'Recalled in the US: Thing', 'a first run must never compose a post');
 });
 
 // RAIL 1b — everything already in backfill stays unpostable forever, even when brand new.
@@ -77,7 +77,7 @@ run('rail1b-backfill-never-posts', {
   fbState: { backfill: ['id1'], posted: {} },
 }, (out) => {
   must(out, 'candidates  : 0', 'a backfilled recall must never become a candidate');
-  mustNot(out, 'Recalled: Thing 1', 'a backfilled recall must never be composed');
+  mustNot(out, 'Recalled in the US: Thing 1', 'a backfilled recall must never be composed');
 });
 
 // RAIL 2 — the age cutoff must drop old recalls even when they are NOT in backfill. This is the
@@ -88,8 +88,8 @@ run('rail2-age-cutoff-drops-old', {
 }, (out) => {
   must(out, '2 older than 30d', 'both the 400-day and 31-day recalls must be refused');
   must(out, 'candidates  : 1', 'only the 1-day-old recall survives');
-  must(out, 'Recalled: Thing 3', 'the fresh one must be composed');
-  mustNot(out, 'Recalled: Thing 1', 'the 400-day-old recall must never be composed');
+  must(out, 'Recalled in the US: Thing 3', 'the fresh one must be composed');
+  mustNot(out, 'Recalled in the US: Thing 1', 'the 400-day-old recall must never be composed');
 });
 
 // RAIL 3 — the per-run cap must hold when a CPSC batch lands.
@@ -98,15 +98,19 @@ run('rail2-age-cutoff-drops-old', {
 // without this rail, the day Australia landed the US page would have started publishing
 // Australian recalls — a phone number nobody reading it can call.
 const auRec = ['au1', { slug: 'aussie-thing-recall', prod: 'Aussie Thing', hazard: 'fire hazard', date: day(-1), num: '', country: 'au' }];
+// ⚠ --country us is now EXPLICIT here. The default was widened to every country on 2026-08-16,
+// so a scenario relying on the old default would have been testing the default rather than the
+// filter — and would have gone green for the wrong reason the day the default changed back.
 run('rail6-other-country-never-posts', {
   seen: Object.fromEntries([rec(1, day(-1)), auRec]),
   fbState: { backfill: [], posted: {} },
+  args: ['--country', 'us'],
 }, (out) => {
-  must(out, 'country     : US only', 'the run must state which country it is posting for');
+  must(out, 'country     : US', 'the run must state which country it is posting for');
   must(out, '1 other country', 'the Australian recall must be counted as refused, not silently dropped');
   must(out, 'candidates  : 1', 'only the US recall survives');
-  must(out, 'Recalled: Thing 1', 'the US recall must still be composed');
-  mustNot(out, 'Recalled: Aussie Thing', 'an Australian recall must never reach the US page');
+  must(out, 'Recalled in the US: Thing 1', 'the US recall must still be composed');
+  mustNot(out, 'Recalled in Australia: Aussie Thing', 'an Australian recall must never reach the US page');
 });
 
 // The flag selects rather than widens — proving the filter is a real per-country switch and not
@@ -116,9 +120,24 @@ run('rail6b-country-flag-selects-the-other-way', {
   fbState: { backfill: [], posted: {} },
   args: ['--country', 'au'],
 }, (out) => {
-  must(out, 'country     : AU only', 'the flag must be reflected in the header');
-  must(out, 'Recalled: Aussie Thing', 'the Australian recall must be composed when AU is selected');
-  mustNot(out, 'Recalled: Thing 1', 'the US recall must be refused when AU is selected');
+  must(out, 'country     : AU', 'the flag must be reflected in the header');
+  must(out, 'Recalled in Australia: Aussie Thing', 'the Australian recall must be composed when AU is selected');
+  mustNot(out, 'Recalled in the US: Thing 1', 'the US recall must be refused when AU is selected');
+});
+
+// ⭐ THE DEFAULT NOW CARRIES EVERY COUNTRY — his call, once the site had four of them and three
+// were reaching nobody. The label on the first line has to name the country, because a recall is
+// only actionable where it was issued: the retailer, the refund and the phone number are national.
+run('default-posts-every-country-and-labels-each-one', {
+  seen: Object.fromEntries([rec(1, day(-1)), auRec]),
+  fbState: { backfill: [], posted: {} },
+  args: ['--limit', '5'],
+}, (out) => {
+  must(out, 'country     : every country', 'the default must say plainly that it is not filtering');
+  must(out, '0 other country', 'nothing may be refused for its country under the default');
+  must(out, 'Recalled in the US: Thing 1', 'the US recall carries its country');
+  must(out, 'Recalled in Australia: Aussie Thing', 'and so does the Australian one');
+  mustNot(out, 'publishes on any weekday, so spreading over ~24h — 42', 'a mixed stream must not pace to the CPSC calendar');
 });
 
 // The operator action that made rails 1 and 6 independent. After three countries were added to
@@ -131,7 +150,7 @@ run('backfill-flag-records-everything-and-posts-nothing', {
 }, (out) => {
   must(out, 'recorded 2 additional recall(s) as backfill', 'it must claim exactly what it recorded');
   must(out, 'Nothing was published', 'the backfill action must never publish, even with fresh recalls present');
-  mustNot(out, 'Recalled: Thing 1', 'no post may be composed on a backfill run');
+  mustNot(out, 'Recalled in the US: Thing 1', 'no post may be composed on a backfill run');
 });
 
 run('rail3-per-run-cap', {
@@ -141,7 +160,7 @@ run('rail3-per-run-cap', {
 }, (out) => {
   must(out, 'candidates  : 5 (capping at 3 this run)', 'five candidates, three allowed');
   must(out, '3 would be published', 'exactly three compose');
-  mustNot(out, 'Recalled: Thing 4', 'the fourth must wait for the next run');
+  mustNot(out, 'Recalled in the US: Thing 4', 'the fourth must wait for the next run');
 });
 
 // PACING — CPSC drops everything on a Thursday, so the cap is computed from how many runs remain
@@ -190,8 +209,8 @@ run('rail3b-oldest-first', {
   fbState: { backfill: [], posted: {} },
   args: ['--limit', '1'],
 }, (out) => {
-  must(out, 'Recalled: Thing 7', 'the oldest candidate goes first');
-  mustNot(out, 'Recalled: Thing 9', 'the newest must not jump the queue');
+  must(out, 'Recalled in the US: Thing 7', 'the oldest candidate goes first');
+  mustNot(out, 'Recalled in the US: Thing 9', 'the newest must not jump the queue');
 });
 
 // RAIL 4 — dry is the default. No --commit anywhere means no publish attempt, ever.
@@ -211,7 +230,7 @@ run('no-double-post', {
 }, (out) => {
   must(out, '1 already posted', 'the posted one is counted as skipped');
   must(out, 'candidates  : 1', 'only the unposted one remains');
-  mustNot(out, 'Recalled: Thing 1', 'a posted recall must never be recomposed');
+  mustNot(out, 'Recalled in the US: Thing 1', 'a posted recall must never be recomposed');
 });
 
 // The post body itself — assembled from CPSC fields, carrying the canonical URL, no invention.
@@ -219,7 +238,7 @@ run('composes-from-cpsc-fields-only', {
   seen: { id1: { slug: 'crib-recall-26123', prod: 'Acme Drop-Side Crib', hazard: 'entrapment hazard', date: day(-1), num: '26123' } },
   fbState: { backfill: [], posted: {} },
 }, (out) => {
-  must(out, 'Recalled: Acme Drop-Side Crib', 'product comes from the record');
+  must(out, 'Recalled in the US: Acme Drop-Side Crib', 'product comes from the record');
   must(out, 'Hazard: Entrapment', 'hazard comes from the record, sentence-cased');
   mustNot(out, 'Entrapment hazard', 'the label already says Hazard: — the duplicate word must be dropped');
   must(out, '[card] https://stophurting.org/us/recalls/crib-recall-26123/', 'the link must be the CANONICAL country-scoped URL, not the redirecting one');

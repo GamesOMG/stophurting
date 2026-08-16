@@ -66,9 +66,25 @@ const argOf = (flag, dflt) => {
 };
 const COMMIT = process.argv.includes('--commit');
 
-// ⛔ Default 'us', never 'all'. A default that widens as countries are added is a default that
-// silently changes what gets published every time the site grows — the opposite of a rail.
-const POST_COUNTRY = argOf('--country', 'us');
+// ⭐⭐ ALL FOUR COUNTRIES, his call 2026-08-16: "if we are doing more than just the US, we should
+// not be waiting until thursday to start the other ones."
+// It was 'us' only, set when the site WAS only the US, and it quietly stopped being right the day
+// Australia landed: three countries' recalls were reaching the site and none of them reached the
+// page. The page went silent for six days a week while ~26 recalls a week went unpublished.
+// ⛔ AND THE ARGUMENT FOR KEEPING IT US-ONLY WAS BUILT ON TWO THINGS I MADE UP, both corrected by
+// Jason on the spot: that the page had a US following to protect (it has no followers at all —
+// one post), and that a Facebook audience is American (Facebook is global, and most of its users
+// are not in the US). Neither was measured. The "US mom groups" note in the project file was
+// about where readers SHARE recalls INTO, which says nothing about who follows a page.
+// What remains true is only this: a reader has to know which country a notice applies to before
+// acting on it, which is a labelling problem, not a reason to withhold three countries.
+// ⛔ The 220 pre-existing foreign recalls were recorded as backfill BEFORE this changed, so
+// widening the filter cannot replay them: only recalls first seen from now on are candidates.
+// That ordering was not luck, and reversing it would have flooded the page.
+const COUNTRY_ARG = argOf('--country', 'all');
+const POST_COUNTRIES = COUNTRY_ARG === 'all' ? null : COUNTRY_ARG.split(',').map((s) => s.trim());
+const postsCountry = (cc) => POST_COUNTRIES === null || POST_COUNTRIES.includes(cc);
+const COUNTRY_LABEL = POST_COUNTRIES === null ? 'every country' : POST_COUNTRIES.join(', ').toUpperCase();
 const RUN_INTERVAL_HOURS = 4;   // the stophurting-recalls task cadence
 const MAX_PER_RUN = 3;          // hard ceiling, whatever the maths says
 // ⭐⭐ THE THURSDAY MATHS IS A PROPERTY OF THE CPSC, NOT OF RECALLS. Jason asked the right
@@ -87,8 +103,12 @@ const MAX_PER_RUN = 3;          // hard ceiling, whatever the maths says
 // divisor follows it, instead of one regulator's calendar being baked in as if it were a fact
 // about the world.
 const WEEKLY_DROP_DAY = { us: 4 };   // 0 Sun … 4 Thu. Absent = publishes on any weekday.
-function runsUntilNextDrop(now = new Date(), country = POST_COUNTRY) {
-  const dropDay = WEEKLY_DROP_DAY[country];
+// ⭐ With more than one country selected the combined stream IS continuous — the US drops on
+// Thursday, but Canada and the UK publish every weekday, so there is always something arriving.
+// Pacing to the CPSC's calendar in that world would hold a Tuesday UK recall back for two days
+// for no reason. A weekly divisor is only correct when the ONLY selected source is weekly.
+function runsUntilNextDrop(now = new Date(), countries = POST_COUNTRIES) {
+  const dropDay = countries && countries.length === 1 ? WEEKLY_DROP_DAY[countries[0]] : undefined;
   if (dropDay === undefined) {
     // Continuous publisher: spread across roughly a day, so a batch clears without either
     // flooding the feed or falling behind the next day's notices.
@@ -140,7 +160,15 @@ function compose(rec) {
   // "Hazard:" label it reads "Hazard: Fire and Burn hazard". Drop the duplicate — this removes
   // a repeated word, it does not reword CPSC's phrasing.
   const hazard = String(rec.hazard || '').trim().replace(/\s+hazards?$/i, '');
-  const lines = [`Recalled: ${rec.prod}`];
+  // ⭐ THE COUNTRY GOES IN THE FIRST LINE, now that the page carries four of them. A recall is
+  // only actionable where it was issued — the retailer, the refund and the phone number are all
+  // national — so "which country is this" has to survive the "See more" fold, which cuts after
+  // about two lines. Putting it in line one costs a few characters and answers the question
+  // before anyone clicks.
+  // ⛔ Still TWO LINES. Do not add a third for the country: the hazard is the most important
+  // thing in the post and must not be pushed behind the fold to make room.
+  const where = { us: 'the US', au: 'Australia', ca: 'Canada', uk: 'the UK' }[rec.country || 'us'];
+  const lines = [`Recalled in ${where}: ${rec.prod}`];
   if (hazard) lines.push(`Hazard: ${hazard.charAt(0).toUpperCase() + hazard.slice(1)}`);
   return { message: lines.join('\n'), link: url };
 }
@@ -211,7 +239,7 @@ async function main() {
   for (const [id, rec] of Object.entries(state.seen)) {
     // RAIL 6, checked first so the counts read honestly: a recall skipped for being Australian
     // should not also be reported as "too old".
-    if ((rec.country || 'us') !== POST_COUNTRY) { skipped.otherCountry++; continue; }
+    if (!postsCountry(rec.country || 'us')) { skipped.otherCountry++; continue; }
     if (backfill.has(id)) { skipped.backfill++; continue; }
     if (posted[id]) { skipped.alreadyPosted++; continue; }
     if ((rec.date || '') < cutoff) { skipped.tooOld++; continue; }   // RAIL 2
@@ -222,7 +250,7 @@ async function main() {
   console.log(`page        : ${pageId}`);
   console.log(`token       : ${mask(sysToken)}`);
   console.log(`known       : ${Object.keys(state.seen).length} recalls`);
-  console.log(`country     : ${POST_COUNTRY.toUpperCase()} only`);
+  console.log(`country     : ${COUNTRY_LABEL}`);
   console.log(`skipped     : ${skipped.otherCountry} other country · ${skipped.backfill} backfill · ${skipped.alreadyPosted} already posted · ${skipped.tooOld} older than ${MAX_AGE_DAYS}d`);
   // Pace: spread what is left across the runs remaining before the next Thursday drop.
   const LIMIT = EXPLICIT_LIMIT !== null
@@ -231,10 +259,10 @@ async function main() {
   // ⚠ Name the schedule it actually used. The line said "before the next Thursday drop" whatever
   // country was selected, which for a continuous publisher would have been a confident lie in the
   // one place someone would look to check the pacing.
-  const dropDay = WEEKLY_DROP_DAY[POST_COUNTRY];
-  const basis = dropDay === undefined
-    ? `${POST_COUNTRY.toUpperCase()} publishes on any weekday, so spreading over ~24h`
-    : `${POST_COUNTRY.toUpperCase()} drops weekly on ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dropDay]}`;
+  const soleDrop = POST_COUNTRIES && POST_COUNTRIES.length === 1 ? WEEKLY_DROP_DAY[POST_COUNTRIES[0]] : undefined;
+  const basis = soleDrop === undefined
+    ? `${COUNTRY_LABEL} publishes on any weekday, so spreading over ~24h`
+    : `${COUNTRY_LABEL} drops weekly on ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][soleDrop]}`;
   console.log(`pacing      : ${basis} — ${RUNS_LEFT} run(s) left -> ${LIMIT}/run${EXPLICIT_LIMIT !== null ? ' (--limit override)' : ''}`);
   console.log(`candidates  : ${candidates.length}${candidates.length > LIMIT ? ` (capping at ${LIMIT} this run)` : ''}`);
   console.log(`mode        : ${COMMIT ? '🔴 COMMIT — will publish' : 'DRY — nothing will be published'}\n`);
