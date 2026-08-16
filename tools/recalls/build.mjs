@@ -16,7 +16,7 @@
 // ⚠ The homepage strip is injected between RECALLS:START/END markers — idempotent, never
 // touches the hand-written article cards.
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
 import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -481,6 +481,33 @@ ${items.slice(0, 15).map(row).join('\n')}
 `;
 }
 
+// ---------- footer sync ----------
+// ⭐ The generator only ever owned the pages it writes. The homepage, /myths/, /about/ and the 13
+// legacy articles are hand-written, so when Privacy and Contact were added to FOOTER they landed
+// on 4 pages out of 154 — including NOT the homepage, which is exactly where an AdSense reviewer
+// starts. Jason spotted it by looking; no check we had could see it, because every page did have
+// *a* footer.
+// This rewrites the footer block in every HTML file in the repo, generated or not, so the two
+// links AdSense expects can never again exist on only part of the site. Idempotent: running it
+// twice changes nothing.
+function syncFooters() {
+  const skip = new Set(['node_modules', '.git', 'tools', 'assets', '_port']);
+  const files = [];
+  (function walk(dir) {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      if (e.isDirectory()) { if (!skip.has(e.name)) walk(path.join(dir, e.name)); }
+      else if (e.name.endsWith('.html')) files.push(path.join(dir, e.name));
+    }
+  })(ROOT);
+  let changed = 0;
+  for (const f of files) {
+    const html = readFileSync(f, 'utf8');
+    const next = html.replace(/<footer class="site-footer">[\s\S]*?<\/footer>/, FOOTER);
+    if (next !== html) { writeFileSync(f, next); changed++; }
+  }
+  return { scanned: files.length, changed };
+}
+
 function injectHome(items) {
   const home = path.join(ROOT, 'index.html');
   let html = readFileSync(home, 'utf8');
@@ -591,6 +618,8 @@ if (WRITE) {
   injectHome(items);
   writeSearchIndex(items);
   sitemap(items);
+  const fs2 = syncFooters();
+  console.log(`footers: ${fs2.changed} of ${fs2.scanned} html files updated`);
   writeFileSync(STATE_FILE, JSON.stringify(state, null, 1));
   console.log(`hub: ${items.length} recalls · home strip + ticker + search index + sitemap rebuilt`);
 }
