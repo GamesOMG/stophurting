@@ -13,6 +13,9 @@
 //   node tools/recalls/fb-post.mjs --commit        # actually publish
 //   node tools/recalls/fb-post.mjs --limit 1       # cap this run (default 3)
 //   node tools/recalls/fb-post.mjs --max-age 45    # widen the age cutoff (default 30 days)
+//   node tools/recalls/fb-post.mjs --per-day 3     # individual posts per day (rest -> digest)
+//   node tools/recalls/fb-post.mjs --no-digest     # individual posts only, hold the overflow
+//   node tools/recalls/fb-post.mjs --backfill      # record all known recalls as never-postable
 //
 // Credential: C:\Users\ImNot\.secrets\stophurting-fb-token.txt
 //   line 1 = page NODE id (222728804264171 — NOT the URL id 61557134872247, see fb-check-token.mjs)
@@ -21,23 +24,20 @@
 // A PAGE token is derived per run from the system-user token, so a rotated page token can
 // never strand this.
 //
-// ── FOUR RAILS, each guarding a specific way this could embarrass us ──────────────────────
-// 1. BACKFILL WATERMARK. state.seen holds every recall ever generated (134 at build time), none
-//    of them posted. Without a watermark the first run is a 134-post flood on a page that has
-//    never posted anything. So the FIRST run posts NOTHING: it records every currently-known
-//    recall as backfill and exits. Only recalls first seen AFTER that are ever candidates.
-// 2. AGE CUTOFF. Independent of the watermark, nothing older than --max-age days is posted.
-//    `build.mjs --rebuild` and `--since` both re-walk old recalls; if either ever perturbs the
-//    watermark, this stops history from being replayed onto the page.
-// 3. PER-RUN CAP. CPSC drops in batches. The cron runs every 4h; a cap of 3 per run spaces a
-//    batch out over days instead of dumping it in one burst, with a pause between each.
+// ── THE RAILS, each guarding a specific way this could embarrass us ───────────────────────
+// 1. BACKFILL WATERMARK. state.seen holds every recall ever generated, none of them posted.
+//    Without a watermark the first run is a flood on a page that has never posted anything. So
+//    the FIRST run posts NOTHING and records what it saw. --backfill re-arms this when a new
+//    country is added to the site, which is what makes rails 1 and 6 independent.
+// 2. AGE CUTOFF. Nothing older than --max-age days is posted, whatever the watermark says.
+// 3. DAILY BUDGET + DIGEST. --per-day posts individually; everything else goes out in ONE digest
+//    at the end of the day. ⛔ A cap without a digest is not a cap, it is silent loss: the surplus
+//    queues, and rail 2 then drops each one at 30 days old, never posted and never reported.
 // 4. DRY BY DEFAULT. Nothing publishes without --commit, and every skip prints its reason.
-// 6. COUNTRY. state.seen holds every country the site tracks; this page has ONE audience. The
-//    Stop Hurting page is US mom groups — that was the entire thesis for the Facebook lane — and
-//    an Australian recall posted there is a phone number nobody can call and a retailer nobody
-//    can visit. Without this rail the Australian adapter's first run would have auto-published
-//    Australian recalls to a US page, because they are new, recent and unposted: rails 1 and 2
-//    are both blind to them by design. One country per page; a second page can pass --country au.
+// 5. LINK OR IT DID NOT HAPPEN. The URL is not in the message (Facebook strips it and renders the
+//    card), so every publish re-fetches its own attachments and comments the URL if none rendered.
+// 6. COUNTRY. Every country is posted by default, each labelled in the first line — a recall is
+//    only actionable where it was issued. --country us restricts it again.
 //
 // State: tools/recalls/fb-state.json — deliberately SEPARATE from state.json, which build.mjs
 // rewrites wholesale on every run; sharing one file invites a lost update between the two tools.
@@ -85,8 +85,27 @@ const COUNTRY_ARG = argOf('--country', 'all');
 const POST_COUNTRIES = COUNTRY_ARG === 'all' ? null : COUNTRY_ARG.split(',').map((s) => s.trim());
 const postsCountry = (cc) => POST_COUNTRIES === null || POST_COUNTRIES.includes(cc);
 const COUNTRY_LABEL = POST_COUNTRIES === null ? 'every country' : POST_COUNTRIES.join(', ').toUpperCase();
-const RUN_INTERVAL_HOURS = 4;   // the stophurting-recalls task cadence
-const MAX_PER_RUN = 3;          // hard ceiling, whatever the maths says
+// ⭐⭐ A DAILY BUDGET, NOT A BATCH-SPREADING DIVISOR — his call once he saw the volume.
+// Measured across our own records: US 13.4/wk · CA 7.7 · UK 4.7 · AU 5.1 = ~31/week, ~4.4/day,
+// and that doubles if the site doubles its countries. Posting all of them is 5+ near-identical
+// posts a day and grows without limit.
+// ⛔ But a CAP ALONE IS NOT THE ANSWER, and this is the part that is easy to get wrong: a cap
+// below the arrival rate does not reduce volume, it converts volume into SILENT LOSS. The
+// unposted ones queue, the queue grows every day, and rail 2 then drops each one when it turns 30
+// days old — never posted, never reported. So the overflow has to GO somewhere.
+// It goes into one digest post at the end of the day. Volume stays flat at (budget + 1) posts per
+// day no matter how many countries are added, and nothing is dropped.
+// This replaces the old "runs until the next CPSC Thursday" divisor entirely: that existed to
+// spread one weekly batch, and a daily budget does the same job for any mix of sources without
+// knowing anybody's publishing calendar.
+const MAX_PER_RUN = 3;          // never more than this in a single run, whatever the budget says
+const INDIVIDUAL_PER_DAY = Number(argOf('--per-day', 3));
+// The last scheduled run of the day. The task fires every 4h from 15:19, so the final run before
+// midnight lands at 23:19; anything from 20:00 counts. ⚠ It is "the first run after this hour that
+// has not already digested today", not "the 23:19 run" — a missed run must not cost a whole day's
+// digest, and a machine that was asleep should still send one when it wakes.
+const DIGEST_AFTER_HOUR = Number(argOf('--digest-after', 20));
+const NO_DIGEST = process.argv.includes('--no-digest');
 // ⭐⭐ THE THURSDAY MATHS IS A PROPERTY OF THE CPSC, NOT OF RECALLS. Jason asked the right
 // question — "the other places don't just post on Thursdays, so why are we waiting?" — and the
 // answer is that we are not waiting for Thursday, we are waiting for the CPSC, which only moves
@@ -102,26 +121,6 @@ const MAX_PER_RUN = 3;          // hard ceiling, whatever the maths says
 // that publishes continuously wants a flat rate. So the schedule is declared per country and the
 // divisor follows it, instead of one regulator's calendar being baked in as if it were a fact
 // about the world.
-const WEEKLY_DROP_DAY = { us: 4 };   // 0 Sun … 4 Thu. Absent = publishes on any weekday.
-// ⭐ With more than one country selected the combined stream IS continuous — the US drops on
-// Thursday, but Canada and the UK publish every weekday, so there is always something arriving.
-// Pacing to the CPSC's calendar in that world would hold a Tuesday UK recall back for two days
-// for no reason. A weekly divisor is only correct when the ONLY selected source is weekly.
-function runsUntilNextDrop(now = new Date(), countries = POST_COUNTRIES) {
-  const dropDay = countries && countries.length === 1 ? WEEKLY_DROP_DAY[countries[0]] : undefined;
-  if (dropDay === undefined) {
-    // Continuous publisher: spread across roughly a day, so a batch clears without either
-    // flooding the feed or falling behind the next day's notices.
-    return Math.max(1, Math.floor(24 / RUN_INTERVAL_HOURS));
-  }
-  const day = now.getDay();
-  let daysToDrop = (dropDay - day + 7) % 7;
-  if (daysToDrop === 0) daysToDrop = 7;        // it IS drop day: the next one is a week out
-  const hoursLeft = daysToDrop * 24 - now.getHours();
-  return Math.max(1, Math.floor(hoursLeft / RUN_INTERVAL_HOURS));
-}
-// --runs-left exists so the pacing can be tested deterministically; production never passes it.
-const RUNS_LEFT = Number(argOf('--runs-left', runsUntilNextDrop()));
 const EXPLICIT_LIMIT = process.argv.includes('--limit') ? Number(argOf('--limit', 3)) : null;
 const MAX_AGE_DAYS = Number(argOf('--max-age', 30));
 // ⭐ Operator action, run once when a country is added to the SITE but not to the Facebook lane.
@@ -171,6 +170,69 @@ function compose(rec) {
   const lines = [`Recalled in ${where}: ${rec.prod}`];
   if (hazard) lines.push(`Hazard: ${hazard.charAt(0).toUpperCase() + hazard.slice(1)}`);
   return { message: lines.join('\n'), link: url };
+}
+
+// ---------- the digest ----------
+// ⭐ ONE post carrying everything the daily budget did not reach. This is what makes the volume
+// flat: however many countries the site adds, the page publishes (budget + 1) posts a day.
+// ⛔ NO AI here either — it counts records and lists their own product names.
+// ⚠ TWO LINES, like every other post, because the "See more" fold cuts after about two. The first
+// line is the count and the countries (the reader's "does this concern me"), the second is the
+// actual product names, so the post is useful even to someone who never clicks. The card comes
+// from the homepage, which already lists the newest recalls from every country.
+function composeDigest(recs) {
+  const where = { us: 'the US', au: 'Australia', ca: 'Canada', uk: 'the UK' };
+  const counts = {};
+  for (const r of recs) counts[r.country || 'us'] = (counts[r.country || 'us'] || 0) + 1;
+  const byCountry = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([cc, n]) => `${n} in ${where[cc] || cc.toUpperCase()}`)
+    .join(', ');
+  // Name as many products as fit, then say how many are left rather than trailing off.
+  const names = recs.map((r) => r.prod);
+  let listed = [];
+  for (const n of names) {
+    const next = [...listed, n].join(' · ');
+    if (next.length > 150) break;
+    listed.push(n);
+  }
+  const rest = names.length - listed.length;
+  const line2 = listed.join(' · ') + (rest > 0 ? ` + ${rest} more` : '');
+  return {
+    message: `${recs.length} more recalls today: ${byCountry}.\n${line2}`,
+    link: `${ORIGIN}/`,
+  };
+}
+
+async function postDigest(recs, fb, today, pageId, sysToken, posted) {
+  const { message, link } = composeDigest(recs);
+  console.log(`digest      : ${recs.length} recall(s) held back — posting the daily digest`);
+  console.log(message.split('\n').map((l) => `   │ ${l}`).join('\n'));
+  console.log(`   │ [card] ${link}`);
+  if (!COMMIT) { console.log('   └ (dry)\n'); return; }
+
+  const pt = await graph(`/${pageId}`, { fields: 'access_token', access_token: sysToken });
+  if (!pt.ok || !pt.data.access_token) {
+    console.error(`❌ could not derive a page token — ${pt.ok ? 'no access_token field' : pt.error}`);
+    process.exitCode = 1;
+    return;
+  }
+  const r = await graph(`/${pageId}/feed`, { message, link, access_token: pt.data.access_token }, 'POST');
+  if (!r.ok) {
+    // ⛔ Nothing is recorded on failure. The digest retries on the next run, which is still today.
+    console.log(`   └ ❌ ${r.error}\n`);
+    process.exitCode = 1;
+    return;
+  }
+  // ⭐ Each digested recall is recorded as POSTED, with digest:true. That is what stops the
+  // backlog: they are accounted for and never become candidates again. The flag distinguishes
+  // them from individual posts so the daily budget does not count the digest against itself.
+  const at = new Date().toISOString();
+  for (const rec of recs) posted[rec.id] = { at, postId: r.data.id, slug: rec.slug, digest: true };
+  fb.posted = posted;
+  fb.lastDigest = today;
+  writeFileSync(FB_STATE_FILE, JSON.stringify(fb, null, 1));
+  console.log(`   └ ✅ digest posted ${r.data.id} covering ${recs.length} recall(s)\n`);
 }
 
 // ---------- graph ----------
@@ -252,23 +314,44 @@ async function main() {
   console.log(`known       : ${Object.keys(state.seen).length} recalls`);
   console.log(`country     : ${COUNTRY_LABEL}`);
   console.log(`skipped     : ${skipped.otherCountry} other country · ${skipped.backfill} backfill · ${skipped.alreadyPosted} already posted · ${skipped.tooOld} older than ${MAX_AGE_DAYS}d`);
-  // Pace: spread what is left across the runs remaining before the next Thursday drop.
-  const LIMIT = EXPLICIT_LIMIT !== null
-    ? EXPLICIT_LIMIT
-    : Math.max(1, Math.min(MAX_PER_RUN, Math.ceil(candidates.length / RUNS_LEFT)));
-  // ⚠ Name the schedule it actually used. The line said "before the next Thursday drop" whatever
-  // country was selected, which for a continuous publisher would have been a confident lie in the
-  // one place someone would look to check the pacing.
-  const soleDrop = POST_COUNTRIES && POST_COUNTRIES.length === 1 ? WEEKLY_DROP_DAY[POST_COUNTRIES[0]] : undefined;
-  const basis = soleDrop === undefined
-    ? `${COUNTRY_LABEL} publishes on any weekday, so spreading over ~24h`
-    : `${COUNTRY_LABEL} drops weekly on ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][soleDrop]}`;
-  console.log(`pacing      : ${basis} — ${RUNS_LEFT} run(s) left -> ${LIMIT}/run${EXPLICIT_LIMIT !== null ? ' (--limit override)' : ''}`);
-  console.log(`candidates  : ${candidates.length}${candidates.length > LIMIT ? ` (capping at ${LIMIT} this run)` : ''}`);
+  // ── the daily budget ───────────────────────────────────────────────────────────────────
+  const today = new Date().toISOString().slice(0, 10);
+  const postedToday = Object.values(posted).filter((p) => String(p.at || '').slice(0, 10) === today && !p.digest).length;
+  const budgetLeft = Math.max(0, INDIVIDUAL_PER_DAY - postedToday);
+  const LIMIT = EXPLICIT_LIMIT !== null ? EXPLICIT_LIMIT : Math.min(MAX_PER_RUN, budgetLeft);
+  console.log(`budget      : ${INDIVIDUAL_PER_DAY}/day individually · ${postedToday} already today -> ${LIMIT} this run${EXPLICIT_LIMIT !== null ? ' (--limit override)' : ''}`);
+  console.log(`candidates  : ${candidates.length}${candidates.length > LIMIT ? ` (${candidates.length - LIMIT} held for the digest)` : ''}`);
   console.log(`mode        : ${COMMIT ? '🔴 COMMIT — will publish' : 'DRY — nothing will be published'}\n`);
 
-  const batch = candidates.slice(0, LIMIT);                              // RAIL 3
-  if (!batch.length) { console.log('nothing to post.'); return; }
+  // ── the end-of-day digest ──────────────────────────────────────────────────────────────
+  // ⭐ Everything the budget did not reach goes out in ONE post at the end of the day, so the
+  // overflow is published rather than queued. Without this, a budget below the arrival rate grows
+  // a backlog until rail 2 drops each recall at 30 days old — unposted, unreported, and invisible.
+  // ⚠ Fires on the FIRST run at or after DIGEST_AFTER_HOUR that has not already digested today,
+  // not on a specific run: a missed run, or a machine that was asleep, must not cost the day's
+  // digest entirely.
+  const hour = new Date().getHours();
+  const digestDue = !NO_DIGEST && hour >= DIGEST_AFTER_HOUR && fb.lastDigest !== today;
+  // ⛔ ONE leftover is posted normally rather than digested: "1 more recall today" is a worse post
+  // than the recall itself, and publishing it costs nothing.
+  const soloLeftover = digestDue && candidates.length === LIMIT + 1;
+  const batch = candidates.slice(0, soloLeftover ? LIMIT + 1 : LIMIT);          // RAIL 3
+  const forDigest = candidates.slice(batch.length);
+  if (soloLeftover) console.log('digest      : only 1 held back — posting it individually instead\n');
+  else if (digestDue && forDigest.length) console.log(`digest      : due — ${forDigest.length} will be summarised after the individual posts\n`);
+  else if (digestDue) console.log('digest      : due, but nothing was held back today\n');
+  else if (!NO_DIGEST && forDigest.length) console.log(`digest      : ${forDigest.length} held for the end-of-day digest (after ${DIGEST_AFTER_HOUR}:00)\n`);
+
+  // 🪤 THE DIGEST RUNS AFTER THE BATCH, NOT INSTEAD OF IT. The first version returned as soon as
+  // it had digested, which skipped the day's individual posts entirely — so on a day when every
+  // recall arrived after the digest hour, all seven would have been summarised in one line and
+  // none of them featured. Caught by asserting the call count against the fake Graph: one feed
+  // call where there should have been four.
+  const runDigest = async () => {
+    if (digestDue && forDigest.length) await postDigest(forDigest, fb, today, pageId, sysToken, posted);
+    else if (digestDue) { fb.lastDigest = today; if (COMMIT) writeFileSync(FB_STATE_FILE, JSON.stringify(fb, null, 1)); }
+  };
+  if (!batch.length) { await runDigest(); console.log('nothing else to post.'); return; }
 
   let pageToken = null;
   if (COMMIT) {
@@ -344,6 +427,10 @@ async function main() {
       console.log(`⚠ could not commit fb-state.json (${String(e.message).split('\n')[0]}) — it is still written to disk; commit it by hand.`);
     }
   }
+
+  // The overflow goes out after the individual posts, so the day ends with what was featured plus
+  // one line covering everything else.
+  await runDigest();
 
   if (COMMIT) console.log(`published ${published}${failed ? ` · ${failed} failed (will retry next run)` : ''}`);
   else console.log(`${batch.length} would be published. Re-run with --commit to publish.`);

@@ -140,6 +140,65 @@ run('default-posts-every-country-and-labels-each-one', {
   mustNot(out, 'publishes on any weekday, so spreading over ~24h — 42', 'a mixed stream must not pace to the CPSC calendar');
 });
 
+// ── THE DAILY BUDGET AND ITS OVERFLOW ─────────────────────────────────────────────────────
+// ⛔ The trap this design exists to avoid: a cap below the arrival rate (~4.4/day across four
+// countries) does not reduce volume, it converts volume into SILENT LOSS — the surplus queues,
+// the queue grows daily, and rail 2 then drops each one at 30 days old, never posted and never
+// reported. So the overflow must be published, not merely capped.
+const many = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => rec(i + 1, day(-1))));
+
+run('budget-holds-the-overflow-for-the-digest', {
+  seen: many(7),
+  fbState: { backfill: [], posted: {} },
+  args: ['--per-day', '3', '--digest-after', '99'],   // 99 = before the digest hour, always
+}, (out) => {
+  must(out, 'budget      : 3/day individually · 0 already today -> 3 this run', '');
+  must(out, '4 held for the digest', 'the surplus must be accounted for, not silently dropped');
+  must(out, 'digest      : 4 held for the end-of-day digest', 'and the run must say where they went');
+});
+
+run('digest-covers-everything-the-budget-did-not-reach', {
+  seen: many(7),
+  fbState: { backfill: [], posted: {} },
+  args: ['--per-day', '3', '--digest-after', '0'],    // 0 = the digest hour has always passed
+}, (out) => {
+  must(out, '4 recall(s) held back — posting the daily digest', '');
+  must(out, '4 more recalls today', 'the digest names how many it covers');
+  must(out, 'stophurting.org/', 'and links somewhere the reader can see them all');
+  mustNot(out, 'Recalled in the US: Thing 4', 'a digested recall must NOT also be posted individually');
+});
+
+run('digest-runs-once-a-day', {
+  seen: many(7),
+  fbState: { backfill: [], posted: {}, lastDigest: new Date().toISOString().slice(0, 10) },
+  args: ['--per-day', '3', '--digest-after', '0'],
+}, (out) => {
+  mustNot(out, 'posting the daily digest', 'a second digest on the same day would double-post the overflow');
+});
+
+// ⛔ One leftover is worth more as itself than as a digest saying "1 more recall today".
+run('a-single-leftover-is-posted-not-digested', {
+  seen: many(4),
+  fbState: { backfill: [], posted: {} },
+  args: ['--per-day', '3', '--digest-after', '0'],
+}, (out) => {
+  must(out, 'only 1 held back — posting it individually instead', '');
+  mustNot(out, 'posting the daily digest', '');
+  must(out, 'Recalled in the US: Thing 4', 'the fourth is published rather than summarised');
+});
+
+// The budget is a DAY's budget, not a run's: a run later the same day gets what is left of it.
+run('budget-counts-what-was-already-posted-today', {
+  seen: many(7),
+  fbState: {
+    backfill: [],
+    posted: { id1: { at: new Date().toISOString(), postId: 'p1', slug: 'thing-1-recall-26001' } },
+  },
+  args: ['--per-day', '3', '--digest-after', '99'],
+}, (out) => {
+  must(out, '1 already today -> 2 this run', 'one posted earlier today leaves two of the three');
+});
+
 // The operator action that made rails 1 and 6 independent. After three countries were added to
 // the site, 220 recalls sat outside the backfill and the country filter was the only thing
 // keeping them off a US page — one rail, on something that now runs unattended every four hours.
@@ -158,51 +217,18 @@ run('rail3-per-run-cap', {
   fbState: { backfill: [], posted: {} },
   args: ['--limit', '3'],
 }, (out) => {
-  must(out, 'candidates  : 5 (capping at 3 this run)', 'five candidates, three allowed');
+  must(out, 'candidates  : 5 (2 held for the digest)', 'five candidates, three allowed, two accounted for');
   must(out, '3 would be published', 'exactly three compose');
-  mustNot(out, 'Recalled in the US: Thing 4', 'the fourth must wait for the next run');
+  mustNot(out, 'Recalled in the US: Thing 4', 'the fourth must wait for the digest or the next day');
 });
 
-// PACING — CPSC drops everything on a Thursday, so the cap is computed from how many runs remain
-// before the next drop. A fixed cap would clear an 18-recall batch in 12 hours and then post
-// nothing for six days. --runs-left makes this deterministic; production computes it from the clock.
-run('paces-a-thursday-batch-across-the-week', {
-  seen: Object.fromEntries(Array.from({ length: 18 }, (_, i) => rec(i + 20, day(-1)))),
-  fbState: { backfill: [], posted: {} },
-  args: ['--runs-left', '42'],
-}, (out) => {
-  must(out, '42 run(s) left', 'the pacing line must show the divisor');
-  must(out, '-> 1/run', '18 recalls over 42 runs is 1 per run');
-  must(out, '1 would be published', 'exactly one composes');
-});
-
-// ...and it CATCHES UP when runs have been missed, instead of falling permanently behind.
-run('pacing-catches-up-when-runs-were-missed', {
-  seen: Object.fromEntries(Array.from({ length: 18 }, (_, i) => rec(i + 40, day(-1)))),
-  fbState: { backfill: [], posted: {} },
-  args: ['--runs-left', '7'],
-}, (out) => {
-  must(out, '-> 3/run', '18 left with only 7 runs to go should raise the rate, clamped at the 3 ceiling');
-});
-
-// RAIL 3b — oldest first, so a busy week cannot starve an older unposted recall.
-// ⭐ The pacing divisor follows the SOURCE's schedule, not the CPSC's calendar. Jason spotted the
-// assumption: the other three regulators publish on every weekday (US is Thursday 134/134, but
-// CA is Thu 29%, UK 15%, AU 20%). Pointing the old maths at a continuous publisher would divide a
-// steady daily stream by up to 42 runs and fall permanently behind.
-run('paces-a-continuous-publisher-over-a-day-not-a-week', {
-  seen: Object.fromEntries([
-    ['ca1', { slug: 'ca-a-recall', prod: 'CA A', hazard: 'fire hazard', date: day(-1), num: '', country: 'ca' }],
-    ['ca2', { slug: 'ca-b-recall', prod: 'CA B', hazard: 'fire hazard', date: day(-1), num: '', country: 'ca' }],
-    ['ca3', { slug: 'ca-c-recall', prod: 'CA C', hazard: 'fire hazard', date: day(-1), num: '', country: 'ca' }],
-  ]),
-  fbState: { backfill: [], posted: {} },
-  args: ['--country', 'ca'],
-}, (out) => {
-  must(out, 'publishes on any weekday', 'the run must name the schedule it actually used');
-  mustNot(out, 'drops weekly', 'Canada has no weekly drop day, and claiming one is the bug');
-  must(out, '6 run(s) left', 'a continuous publisher spreads over ~24h — six 4-hourly runs, not up to 42');
-});
+// ⛔ THE THREE PACING SCENARIOS THAT LIVED HERE TESTED A MECHANISM THAT NO LONGER EXISTS.
+// They covered the "runs until the next CPSC Thursday" divisor, which spread one weekly batch
+// across the week. That was replaced by the daily budget plus an end-of-day digest, because a
+// divisor cannot express "a couple a day" and silently grew a backlog once four countries were
+// publishing. Their coverage is not lost — it moved to the five budget/digest scenarios above,
+// which assert the same properties (nothing floods, nothing starves, nothing is dropped) against
+// the mechanism that actually ships. Deleted rather than left green over dead code.
 
 run('rail3b-oldest-first', {
   seen: Object.fromEntries([rec(9, day(-1)), rec(7, day(-20)), rec(8, day(-10))]),
@@ -297,18 +323,18 @@ const base = `http://127.0.0.1:${server.address().port}`;
 // could never answer the child — the child hung on fetch and the whole suite stalled forever.
 // A synchronous subprocess and an in-process server cannot coexist.
 const execFileAsync = promisify(execFile);
-async function runPublish(name, mode, assert) {
+async function runPublish(name, mode, assert, opts = {}) {
   cardMode = mode;
   seenCalls.length = 0;
   const stateFile = path.join(tmp, `${name}-state.json`);
   const fbFile = path.join(tmp, `${name}-fb.json`);
   const tokFile = path.join(tmp, `${name}-tok.txt`);
-  writeFileSync(stateFile, JSON.stringify({ seen: Object.fromEntries([rec(1, day(-1))]), indexnowKey: 'x' }));
+  writeFileSync(stateFile, JSON.stringify({ seen: opts.seen || Object.fromEntries([rec(1, day(-1))]), indexnowKey: 'x' }));
   writeFileSync(fbFile, JSON.stringify({ backfill: [], posted: {} }));
   writeFileSync(tokFile, '222728804264171\nFIXTURE-NOT-A-REAL-TOKEN-000000000000\n');
   let out;
   try {
-    const r = await execFileAsync(process.execPath, [SCRIPT, '--commit', '--pause', '0'], {
+    const r = await execFileAsync(process.execPath, [SCRIPT, '--commit', '--pause', '0', ...(opts.args || [])], {
       env: { ...process.env, SH_STATE_FILE: stateFile, SH_FB_STATE_FILE: fbFile, SH_FB_TOKEN_FILE: tokFile, SH_FB_GRAPH_BASE: base },
       encoding: 'utf8',
       timeout: 15000,
@@ -332,6 +358,24 @@ await runPublish('self-heals-when-no-card-renders', 'none', (out, state, calls) 
   must(out, 'posted the URL as a comment', 'the self-heal must fire');
   if (!calls.some((c) => c.includes('/comments'))) throw new Error('a comment must actually be posted');
   if (state.posted.id1?.card !== 'self-healed-comment') throw new Error(`card should record the self-heal, got ${state.posted.id1?.card}`);
+});
+
+// ⭐⭐ THE DIGEST'S PUBLISH PATH IS WHAT STOPS THE BACKLOG, so it is the part that must be seen
+// working rather than reasoned about. Every recall it covers has to be RECORDED as posted — if it
+// publishes but does not record, the same recalls are digested again tomorrow, and the day after,
+// forever. Recording them is also what keeps them out of the individual queue.
+await runPublish('digest-records-every-recall-it-covered', 'rendered', (out, state, calls) => {
+  must(out, 'digest posted PAGE_POST_1 covering 4 recall(s)', 'the run must say exactly what it covered');
+  const feedPosts = calls.filter((c) => c.includes('/feed')).length;
+  if (feedPosts !== 4) throw new Error(`expected 3 individual posts + 1 digest = 4 feed calls, got ${feedPosts}`);
+  const digested = Object.values(state.posted).filter((p) => p.digest);
+  if (digested.length !== 4) throw new Error(`all 4 held-back recalls must be recorded, got ${digested.length} — anything unrecorded is digested again tomorrow`);
+  if (!state.lastDigest) throw new Error('lastDigest must be stamped, or a second run today posts a second digest');
+  const individual = Object.values(state.posted).filter((p) => !p.digest);
+  if (individual.length !== 3) throw new Error(`the daily budget of 3 should have posted individually, got ${individual.length}`);
+}, {
+  seen: Object.fromEntries(Array.from({ length: 7 }, (_, i) => rec(i + 1, day(-1)))),
+  args: ['--per-day', '3', '--digest-after', '0'],
 });
 
 server.close();
