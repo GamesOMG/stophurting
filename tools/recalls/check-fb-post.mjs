@@ -137,8 +137,17 @@ run('composes-from-cpsc-fields-only', {
   fbState: { backfill: [], posted: {} },
 }, (out) => {
   must(out, 'Recalled: Acme Drop-Side Crib', 'product comes from the record');
-  must(out, 'Hazard: Entrapment hazard', 'hazard comes from the record, sentence-cased');
+  must(out, 'Hazard: Entrapment', 'hazard comes from the record, sentence-cased');
+  mustNot(out, 'Entrapment hazard', 'the label already says Hazard: — the duplicate word must be dropped');
   must(out, 'https://stophurting.org/recalls/crib-recall-26123/', 'the canonical URL must be the link');
+});
+
+// The de-dupe must not eat a hazard that merely CONTAINS the word mid-phrase.
+run('hazard-dedupe-only-strips-the-tail', {
+  seen: { id1: { slug: 'x-recall-1', prod: 'X', hazard: 'hazardous chemical exposure hazard', date: day(-1), num: '1' } },
+  fbState: { backfill: [], posted: {} },
+}, (out) => {
+  must(out, 'Hazard: Hazardous chemical exposure', 'only the trailing word goes');
 });
 
 rmSync(tmp, { recursive: true, force: true });

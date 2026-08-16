@@ -68,7 +68,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // language, no "SHARE THIS!" — the people who share these are the audience, and they can tell.
 function compose(rec) {
   const url = `${ORIGIN}/recalls/${rec.slug}/`;
-  const hazard = String(rec.hazard || '').trim();
+  // build.mjs's hazardShort() always ends the phrase with the word "hazard", so under a
+  // "Hazard:" label it reads "Hazard: Fire and Burn hazard". Drop the duplicate — this removes
+  // a repeated word, it does not reword CPSC's phrasing.
+  const hazard = String(rec.hazard || '').trim().replace(/\s+hazards?$/i, '');
   const lines = [`Recalled: ${rec.prod}`];
   if (hazard) lines.push(`Hazard: ${hazard.charAt(0).toUpperCase() + hazard.slice(1)}`);
   lines.push('', 'What was sold, what to do, and the official CPSC notice:', url);
