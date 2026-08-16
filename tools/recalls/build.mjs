@@ -25,6 +25,20 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
 const STATE_FILE = path.join(HERE, 'state.json');
 const ORIGIN = 'https://stophurting.org';
+const argOf = (f, d) => { const i = process.argv.indexOf(f); return i > -1 && process.argv[i + 1] ? process.argv[i + 1] : d; };
+
+// ---------- country ----------
+// ⭐ Pages live under /<cc>/recalls/. Moved here while there were only 134 of them: the same
+// change at 5,000 pages is a project, and Australia lands today so the structure is used
+// immediately rather than being speculative scaffolding.
+// ⛔ /assets/img/recalls/<slug>/ is an ASSET path and deliberately does NOT move — it is not a
+// page URL, and rewriting it would orphan 134 mirrored photos for no reader benefit.
+// The old /recalls/... URLs 301 to /us/recalls/... via _redirects, so the published Facebook
+// link and anything already indexed keep working.
+const COUNTRY = argOf('--country', 'us');
+const cc = (r) => (r && r.country) || COUNTRY;
+const recallPath = (r) => `/${cc(r)}/recalls/${r.slug}/`;
+const hubPath = (c = COUNTRY) => `/${c}/recalls/`;
 const WRITE = process.argv.includes('--write') || process.argv.includes('--commit');
 const COMMIT = process.argv.includes('--commit');
 const sinceIdx = process.argv.indexOf('--since');
@@ -138,7 +152,7 @@ function railLinks(items, slug, hazard) {
         <section class="rail-card">
           <h2 class="rail-title">${esc(title)}</h2>
           <ul class="rail-list">
-${list.map((i) => `            <li><a href="/recalls/${i.slug}/"><span class="rail-prod">${esc(clamp(i.prod, 60))}</span><span class="rail-date">${esc(i.date)}</span></a></li>`).join('\n')}
+${list.map((i) => `            <li><a href="${recallPath(i)}"><span class="rail-prod">${esc(clamp(i.prod, 60))}</span><span class="rail-date">${esc(i.date)}</span></a></li>`).join('\n')}
           </ul>
         </section>`);
   // A permanent card, not conditional: the transparency page only builds trust if it is always
@@ -182,7 +196,7 @@ function recallPage(rec, slug, img, items) {
     description: desc,
     author: { '@type': 'Organization', name: 'StopHurting', url: ORIGIN },
     publisher: { '@type': 'Organization', name: 'StopHurting', url: ORIGIN },
-    mainEntityOfPage: `${ORIGIN}/recalls/${slug}/`,
+    mainEntityOfPage: `${ORIGIN}${recallPath({ slug })}`,
     datePublished: date, dateModified: isoDay(rec.LastPublishDate) || date,
   };
   return `<!doctype html>
@@ -192,7 +206,7 @@ function recallPage(rec, slug, img, items) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${esc(title)}</title>
   <meta name="description" content="${esc(desc)}" />
-  <link rel="canonical" href="${ORIGIN}/recalls/${slug}/" />
+  <link rel="canonical" href="${ORIGIN}${recallPath({ slug })}" />
   <meta property="og:title" content="${esc(`${prod} Recall (${monthYear(rec.RecallDate)})`)}" />
   <meta property="og:description" content="${esc(desc)}" />
 ${img ? `  <meta property="og:image" content="${ORIGIN}${esc(img.rel)}" />\n` : ''}  <meta property="og:type" content="article" />
@@ -204,7 +218,7 @@ ${img ? `  <meta property="og:image" content="${ORIGIN}${esc(img.rel)}" />\n` : 
   ${HEADER}
   <main>
     <article class="recall-shell">
-      <div class="breadcrumb"><a href="/">Home</a> &nbsp;/&nbsp; <a href="/recalls/">Recalls</a></div>
+      <div class="breadcrumb"><a href="/">Home</a> &nbsp;/&nbsp; <a href="${hubPath()}">Recalls</a></div>
       <header class="article-header">
         <span class="chip chip-recall">Recall</span>
         <h1>${esc(prod)} Recall (${esc(monthYear(rec.RecallDate))})</h1>
@@ -240,7 +254,7 @@ ${AD_HTML ? `          <div class="rl-ad" aria-label="Advertisement">${AD_HTML}<
 
 // ---------- hub + homepage + sitemap ----------
 const SEAL = `<svg viewBox="0 0 24 26" aria-hidden="true"><path d="M12 1l10 4v7c0 6.5-4.3 11.3-10 13C6.3 23.3 2 18.5 2 12V5l10-4z" fill="#e07b39"/><path d="M7.5 12.5l3 3 6-6" stroke="#16334f" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-const HEADER = `<header class="site-header"><div class="wrap header-inner"><a class="brand" href="/"><span class="brand-mark">${SEAL}</span><span class="brand-name">Stop<span class="brand-accent">Hurting</span></span></a><nav class="nav"><a href="/recalls/">Recalls</a><a href="/updates/">Corrections</a><a href="/myths/">Myth Checks</a><a href="/about/">About</a></nav></div></header>`;
+const HEADER = `<header class="site-header"><div class="wrap header-inner"><a class="brand" href="/"><span class="brand-mark">${SEAL}</span><span class="brand-name">Stop<span class="brand-accent">Hurting</span></span></a><nav class="nav"><a href="${hubPath()}">Recalls</a><a href="/updates/">Corrections</a><a href="/myths/">Myth Checks</a><a href="/about/">About</a></nav></div></header>`;
 // ⭐ The footer links are not decoration: AdSense expects a reachable privacy policy and a way to
 // contact the site owner, and their absence is a standard site-level rejection.
 // ⭐ Not decoration: AdSense expects a reachable privacy policy and a way to contact the owner,
@@ -258,7 +272,7 @@ const FAVICON = `<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://ww
 // ⛔ Photos are `object-fit: contain` on white, never cropped to fill: a recall thumbnail that
 // slices the product in half fails at its only job.
 function card(r) {
-  return `        <a class="r-card" href="/recalls/${r.slug}/">
+  return `        <a class="r-card" href="${recallPath(r)}">
           <span class="r-card-img"><img src="/assets/img/recalls/${r.slug}/1.webp" alt="${esc(r.prod)}" loading="lazy" width="400" height="300" /></span>
           <span class="r-card-body">
             <span class="r-card-prod">${esc(clamp(r.prod, 64))}</span>
@@ -268,7 +282,7 @@ function card(r) {
         </a>`;
 }
 function row(r) {
-  return `        <li><a class="r-row" href="/recalls/${r.slug}/"><span class="r-date">${esc(r.date)}</span><span class="r-prod">${esc(r.prod)}</span><span class="r-hazard">${esc(clamp(r.hazard, 90))}</span></a></li>`;
+  return `        <li><a class="r-row" href="${recallPath(r)}"><span class="r-date">${esc(r.date)}</span><span class="r-prod">${esc(r.prod)}</span><span class="r-hazard">${esc(clamp(r.hazard, 90))}</span></a></li>`;
 }
 // ⭐ Country tag on every ticker entry. Today everything is US, so it reads "US" throughout and
 // looks redundant — that is deliberate. Once Canada, the UK and Australia land, a reader scanning
@@ -278,7 +292,7 @@ function row(r) {
 // `country` is read off the record with a US default, so no state migration is needed.
 function ticker(items) {
   const five = items.slice(0, 5)
-    .map((r) => `<a href="/recalls/${r.slug}/"><span class="tk-cc">${esc((r.country || 'us').toUpperCase())}</span>${esc(r.prod)} — ${esc(clamp(r.hazard, 60))}</a>`)
+    .map((r) => `<a href="${recallPath(r)}"><span class="tk-cc">${esc((r.country || 'us').toUpperCase())}</span>${esc(r.prod)} — ${esc(clamp(r.hazard, 60))}</a>`)
     .join('<span class="ticker-sep">•</span>');
   return `<div class="ticker" aria-label="Latest recalls"><span class="ticker-label">LATEST</span><div class="ticker-clip"><div class="ticker-track">${five}<span class="ticker-sep">•</span>${five}</div></div></div>`;
 }
@@ -291,7 +305,7 @@ function hubPage(items) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Product Recalls, Tracked Daily — StopHurting</title>
   <meta name="description" content="Every U.S. consumer product recall, posted as it drops — what was recalled, the hazard, and what to do, straight from the official CPSC notices. ${items.length} tracked." />
-  <link rel="canonical" href="${ORIGIN}/recalls/" />
+  <link rel="canonical" href="${ORIGIN}${hubPath()}" />
   ${FAVICON}
   <link rel="stylesheet" href="/assets/css/style.css" />
 </head>
@@ -322,7 +336,7 @@ ${items.map(card).join('\n')}
       if (!idx) { load(); return; }
       var hits = idx.filter(function (r) { return r.t.indexOf(t) > -1; }).slice(0, 40);
       host.innerHTML = hits.length
-        ? hits.map(function (r) { return '<a class="r-card" href="/recalls/' + r.slug + '/"><span class="r-card-img"><img src="/assets/img/recalls/' + r.slug + '/1.webp" alt="" loading="lazy" /></span><span class="r-card-body"><span class="r-card-prod">' + r.prod + '</span><span class="r-card-hazard">' + r.hazard + '</span><span class="r-card-date">' + r.date + '</span></span></a>'; }).join('')
+        ? hits.map(function (r) { return '<a class="r-card" href="/' + (r.cc || 'us') + '/recalls/' + r.slug + '/"><span class="r-card-img"><img src="/assets/img/recalls/' + r.slug + '/1.webp" alt="" loading="lazy" /></span><span class="r-card-body"><span class="r-card-prod">' + r.prod + '</span><span class="r-card-hazard">' + r.hazard + '</span><span class="r-card-date">' + r.date + '</span></span></a>'; }).join('')
         : '<p class="r-empty">No tracked recall matches that — we cover CPSC recalls from June 2026 onward.</p>';
     });
   })();
@@ -342,7 +356,7 @@ function updatesPage(items) {
     .sort((a, b) => String(b.withdrawn).localeCompare(String(a.withdrawn)));
   const amended = items.filter((r) => r.amendedAt && !r.withdrawn)
     .sort((a, b) => String(b.amendedAt).localeCompare(String(a.amendedAt)));
-  const row = (r, when, note) => `        <li><a class="r-row" href="/recalls/${r.slug}/"><span class="r-date">${esc(when)}</span><span class="r-prod">${esc(clamp(r.prod, 70))}</span><span class="r-hazard">${esc(note)}</span></a></li>`;
+  const row = (r, when, note) => `        <li><a class="r-row" href="${recallPath(r)}"><span class="r-date">${esc(when)}</span><span class="r-prod">${esc(clamp(r.prod, 70))}</span><span class="r-hazard">${esc(note)}</span></a></li>`;
   const block = (title, sub, list, render) => (!list.length ? '' : `
       <h2 class="section-title" style="font-size:1.35rem;margin-top:2rem">${esc(title)}</h2>
       <p class="section-sub">${esc(sub)}</p>
@@ -617,19 +631,19 @@ ${items.slice(0, 20).map(row).join('\n')}
 }
 function writeSearchIndex(items) {
   const idx = items.map((r) => ({
-    slug: r.slug, date: r.date, prod: r.prod, hazard: clamp(r.hazard, 90),
+    slug: r.slug, cc: cc(r), date: r.date, prod: r.prod, hazard: clamp(r.hazard, 90),
     t: `${r.prod} ${r.hazard} ${r.models || ''} ${r.num}`.toLowerCase(),
   }));
   writeFileSync(path.join(ROOT, 'recalls-index.json'), JSON.stringify(idx));
 }
 function sitemap(items) {
-  const staticPages = ['', 'about/', 'recalls/',
+  const staticPages = ['', 'about/', 'privacy/', 'contact/', 'updates/', `${COUNTRY}/recalls/`,
     ...execSync('git ls-files', { cwd: ROOT }).toString().split('\n')
       .filter((f) => /^[a-z0-9-]+\/index\.html$/.test(f) && !f.startsWith('recalls'))
       .map((f) => f.replace('index.html', ''))];
   const urls = [
     ...staticPages.map((p) => `  <url><loc>${ORIGIN}/${p}</loc></url>`),
-    ...items.map((r) => `  <url><loc>${ORIGIN}/recalls/${r.slug}/</loc><lastmod>${r.modified || r.date}</lastmod></url>`),
+    ...items.map((r) => `  <url><loc>${ORIGIN}${recallPath(r)}</loc><lastmod>${r.modified || r.date}</lastmod></url>`),
   ];
   writeFileSync(path.join(ROOT, 'sitemap.xml'),
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`);
@@ -723,13 +737,13 @@ for (const rec of fresh) {
     models,
     ...(amendedAt ? { amendedAt } : {}),
   };
-  if (!wasSeen) newUrls.push(`${ORIGIN}/recalls/${slug}/`);
+  if (!wasSeen) newUrls.push(`${ORIGIN}${recallPath({ slug })}`);
   prepared.push({ rec, slug, img });
 }
 if (prepared.length) {
   const all = Object.values(state.seen).sort((a, b) => b.date.localeCompare(a.date));
   for (const { rec, slug, img } of prepared) {
-    const dir = path.join(ROOT, 'recalls', slug);
+    const dir = path.join(ROOT, COUNTRY, 'recalls', slug);
     mkdirSync(dir, { recursive: true });
     writeFileSync(path.join(dir, 'index.html'), recallPage(rec, slug, img, all));
     console.log(`  + ${slug}`);
@@ -738,8 +752,8 @@ if (prepared.length) {
 
 if (WRITE) {
   const items = Object.values(state.seen).sort((a, b) => b.date.localeCompare(a.date));
-  mkdirSync(path.join(ROOT, 'recalls'), { recursive: true });
-  writeFileSync(path.join(ROOT, 'recalls', 'index.html'), hubPage(items));
+  mkdirSync(path.join(ROOT, COUNTRY, 'recalls'), { recursive: true });
+  writeFileSync(path.join(ROOT, COUNTRY, 'recalls', 'index.html'), hubPage(items));
   writeFileSync(path.join(ROOT, '404.html'), notFoundPage(items));
   mkdirSync(path.join(ROOT, 'updates'), { recursive: true });
   writeFileSync(path.join(ROOT, 'updates', 'index.html'), updatesPage(items));

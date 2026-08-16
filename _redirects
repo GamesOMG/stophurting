@@ -1,0 +1,16 @@
+# Cloudflare Pages redirects.
+#
+# 2026-08-16: recall pages moved from /recalls/<slug>/ to /us/recalls/<slug>/ so other countries
+# can sit beside the US instead of under it. Done at 134 pages because the same move at 5,000 is
+# a project — and because Australia lands the same day, so the structure is used immediately.
+#
+# ⛔ These 301s are not optional tidiness. Already published against the old URLs:
+#   · the live Facebook post (222728804264171_122304089006237829)
+#   · every URL submitted to IndexNow
+#   · the sitemap Google and Bing have already fetched
+# Removing them breaks all three at once, and a DR-0 site cannot afford to hand back the little
+# indexing it has.
+#
+# Splat first would swallow the bare hub, so the exact match comes first.
+/recalls/  /us/recalls/  301
+/recalls/*  /us/recalls/:splat  301
