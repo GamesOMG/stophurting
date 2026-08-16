@@ -1,6 +1,24 @@
 #!/bin/sh
-# Every asset a page points at must exist on disk.
+# Run EVERY check in tools/, discovered by glob — never by hand.
+#
 # Born from gamesomg-site 2026-08-09: 11 rows pointed at renamed screenshot files,
 # thumbnail + lightbox + JSON-LD all 404'd, and every existing gate stayed green.
 # Enabled per clone with:  git config core.hooksPath .githooks
-node tools/dead-refs/check.mjs || exit 1
+#
+# ⛔ GLOB, DO NOT NAME. This hook used to hardcode `tools/dead-refs/check.mjs`. The same
+# hand-naming in acidnodes-control-plane left a suite in NEITHER gate, and nine days of
+# deploys never ran it — while it sat there looking like coverage. A new check drops into
+# tools/<thing>/check*.mjs and is gated the moment it exists, with no edit here.
+set -e
+found=0
+for check in tools/*/check*.mjs; do
+  [ -e "$check" ] || continue
+  found=$((found + 1))
+  echo "▸ $check"
+  node "$check" || exit 1
+done
+if [ "$found" -eq 0 ]; then
+  echo "pre-commit: no checks found under tools/*/check*.mjs — that is itself suspicious." >&2
+  exit 1
+fi
+echo "pre-commit: $found check suite(s) passed."
