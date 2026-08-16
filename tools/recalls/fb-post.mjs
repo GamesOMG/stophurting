@@ -32,6 +32,12 @@
 // 3. PER-RUN CAP. CPSC drops in batches. The cron runs every 4h; a cap of 3 per run spaces a
 //    batch out over days instead of dumping it in one burst, with a pause between each.
 // 4. DRY BY DEFAULT. Nothing publishes without --commit, and every skip prints its reason.
+// 6. COUNTRY. state.seen holds every country the site tracks; this page has ONE audience. The
+//    Stop Hurting page is US mom groups — that was the entire thesis for the Facebook lane — and
+//    an Australian recall posted there is a phone number nobody can call and a retailer nobody
+//    can visit. Without this rail the Australian adapter's first run would have auto-published
+//    Australian recalls to a US page, because they are new, recent and unposted: rails 1 and 2
+//    are both blind to them by design. One country per page; a second page can pass --country au.
 //
 // State: tools/recalls/fb-state.json — deliberately SEPARATE from state.json, which build.mjs
 // rewrites wholesale on every run; sharing one file invites a lost update between the two tools.
@@ -80,6 +86,9 @@ function runsUntilNextDrop(now = new Date()) {
 const RUNS_LEFT = Number(argOf('--runs-left', runsUntilNextDrop()));
 const EXPLICIT_LIMIT = process.argv.includes('--limit') ? Number(argOf('--limit', 3)) : null;
 const MAX_AGE_DAYS = Number(argOf('--max-age', 30));
+// ⛔ Default 'us', never 'all'. A default that widens as countries are added is a default that
+// silently changes what gets published every time the site grows — the opposite of a rail.
+const POST_COUNTRY = argOf('--country', 'us');
 const PAUSE_MS = Number(argOf('--pause', 45000));
 
 const mask = (s) => (!s ? '(empty)' : `${s.slice(0, 6)}…${s.slice(-4)} (len ${s.length})`);
@@ -161,9 +170,12 @@ async function main() {
   const cutoff = new Date(Date.now() - MAX_AGE_DAYS * 864e5).toISOString().slice(0, 10);
 
   // ── candidates, with every rejection reason printed rather than silently dropped ──
-  const skipped = { backfill: 0, alreadyPosted: 0, tooOld: 0 };
+  const skipped = { backfill: 0, alreadyPosted: 0, tooOld: 0, otherCountry: 0 };
   const candidates = [];
   for (const [id, rec] of Object.entries(state.seen)) {
+    // RAIL 6, checked first so the counts read honestly: a recall skipped for being Australian
+    // should not also be reported as "too old".
+    if ((rec.country || 'us') !== POST_COUNTRY) { skipped.otherCountry++; continue; }
     if (backfill.has(id)) { skipped.backfill++; continue; }
     if (posted[id]) { skipped.alreadyPosted++; continue; }
     if ((rec.date || '') < cutoff) { skipped.tooOld++; continue; }   // RAIL 2
@@ -174,7 +186,8 @@ async function main() {
   console.log(`page        : ${pageId}`);
   console.log(`token       : ${mask(sysToken)}`);
   console.log(`known       : ${Object.keys(state.seen).length} recalls`);
-  console.log(`skipped     : ${skipped.backfill} backfill · ${skipped.alreadyPosted} already posted · ${skipped.tooOld} older than ${MAX_AGE_DAYS}d`);
+  console.log(`country     : ${POST_COUNTRY.toUpperCase()} only`);
+  console.log(`skipped     : ${skipped.otherCountry} other country · ${skipped.backfill} backfill · ${skipped.alreadyPosted} already posted · ${skipped.tooOld} older than ${MAX_AGE_DAYS}d`);
   // Pace: spread what is left across the runs remaining before the next Thursday drop.
   const LIMIT = EXPLICIT_LIMIT !== null
     ? EXPLICIT_LIMIT

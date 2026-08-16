@@ -45,12 +45,22 @@ const IGNORE = cfg.ignore || [];
 const ASSET_EXT = /\.(webp|png|jpe?g|gif|svg|ico|avif|mp4|webm|css|js|json|woff2?)$/i;
 const REF_RE = /(?:src|href|content|data-src)\s*=\s*"([^"]+)"|src\s*:\s*"([^"]+)"|"contentUrl"\s*:\s*"([^"]+)"|url\(([^)]+)\)/g;
 
+// ⛔ EXCLUSIONS CARRY A WRITTEN REASON, one per entry. A skip list that grows silently is how a
+// gate stops covering the thing it was built for.
+//   · tools/*/fixtures — captured pages from OTHER people's websites, kept as parser input. They
+//     are never served, never linked to, and never rendered to a reader; their hundreds of links
+//     point at productsafety.gov.au's own site tree, so checking them against our disk is a
+//     category error that buries every real finding under 200 lines of noise.
+const SKIP_DIRS = [/(^|\/)tools\/[^/]+\/fixtures$/];
 function walk(dir, acc = []) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     if (e.name === 'node_modules' || e.name === '.git' || e.name.startsWith('.')) continue;
     const p = path.join(dir, e.name);
-    if (e.isDirectory()) walk(p, acc);
-    else if (e.name.endsWith('.html')) acc.push(p);
+    if (e.isDirectory()) {
+      const rel = path.relative(REPO, p).replace(/\\/g, '/');
+      if (SKIP_DIRS.some((re) => re.test(rel))) continue;
+      walk(p, acc);
+    } else if (e.name.endsWith('.html')) acc.push(p);
   }
   return acc;
 }

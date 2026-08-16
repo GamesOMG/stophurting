@@ -83,6 +83,28 @@ h1,h2,h3{line-height:1.2;margin:0 0 .5em}
 .section-title{font-size:clamp(1.3rem,2.4vw,1.7rem);font-weight:800;margin-bottom:.4rem}
 .section-sub{color:var(--gray);max-width:70ch;margin:0 0 1.4rem}
 
+/* ── Country switcher on the recall hubs ──────────────────────────────────────────────────────
+   Tabs, not a dropdown: with two or three countries the whole choice should be visible without a
+   click, and a <select> would hide from a crawler the fact that the other hub exists at all.
+   The current country is a real link too — it just carries aria-current — so the row never
+   reflows as you move between hubs.
+   ⛔ No flag glyphs. Windows ships no regional-indicator font, so 🇦🇺 renders as a letter box on
+   the machine this site is built and reviewed on; the code beside the country name does the job
+   in every font. */
+.hub-countries{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 1.2rem}
+.hub-cc{display:inline-flex;align-items:center;gap:.45rem;padding:.42rem .8rem;border:1px solid var(--light);
+  border-radius:999px;background:var(--white);color:var(--gray);font-size:.9rem;font-weight:600;line-height:1}
+.hub-cc:hover{border-color:#cfd9e4;color:var(--ink)}
+.hub-cc-code{font-size:.7rem;font-weight:800;letter-spacing:.06em;color:var(--gray-soft)}
+.hub-cc.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.hub-cc.on .hub-cc-code{color:var(--orange)}
+.hub-cc.on:hover{color:#fff}
+/* Country code on a SEARCH result only. The hub grid does not carry one — every card there is
+   already that country — but search deliberately spans all of them, and an unlabelled Australian
+   result on the US hub would send someone to a phone number they cannot call. */
+.r-card-cc{display:inline-block;margin-right:.4rem;padding:.05rem .3rem;border:1px solid var(--light);
+  border-radius:4px;font-size:.64rem;font-weight:800;letter-spacing:.05em;color:var(--gray-soft);vertical-align:2px}
+
 /* ── Recall rows — dense, scannable ── */
 /* ---- recall grid: photo-led cards ---------------------------------------------------------
    Replaces the full-width text list on the hub. The dated feel came from one dense 16px column
@@ -204,6 +226,11 @@ h1,h2,h3{line-height:1.2;margin:0 0 .5em}
 .recall-img img{max-width:100%;border-radius:10px;border:1px solid var(--light)}
 .recall-img figcaption{font-size:.85rem;color:var(--gray);margin-top:.4rem}
 .recall-source{font-size:.9rem;color:var(--gray);border-top:1px solid var(--light);padding-top:1rem;margin-top:1.6rem}
+/* Licence attribution, only on pages whose source requires one (the ACCC's CC BY 4.0 does; CPSC
+   material is public domain and gets none). Its own line rather than a tail on .recall-source:
+   run together, the page read "Source: the official notice … Source: ACCC ©" — a stutter that no
+   check could see and that reading one rendered page made obvious. */
+.recall-licence{font-size:.82rem;color:var(--gray-soft);margin-top:.5rem}
 
 /* ---- recall page: two columns on desktop, one column on mobile ----------------------------
    ONE ad slot in the DOM, repositioned by grid areas — never duplicated. On desktop it sits in

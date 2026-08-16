@@ -93,6 +93,34 @@ run('rail2-age-cutoff-drops-old', {
 });
 
 // RAIL 3 — the per-run cap must hold when a CPSC batch lands.
+// RAIL 6 — one Facebook page, one country. Rails 1 and 2 are both blind to a foreign recall: it
+// is not in the backfill (it did not exist when the watermark was written) and it is not old. So
+// without this rail, the day Australia landed the US page would have started publishing
+// Australian recalls — a phone number nobody reading it can call.
+const auRec = ['au1', { slug: 'aussie-thing-recall', prod: 'Aussie Thing', hazard: 'fire hazard', date: day(-1), num: '', country: 'au' }];
+run('rail6-other-country-never-posts', {
+  seen: Object.fromEntries([rec(1, day(-1)), auRec]),
+  fbState: { backfill: [], posted: {} },
+}, (out) => {
+  must(out, 'country     : US only', 'the run must state which country it is posting for');
+  must(out, '1 other country', 'the Australian recall must be counted as refused, not silently dropped');
+  must(out, 'candidates  : 1', 'only the US recall survives');
+  must(out, 'Recalled: Thing 1', 'the US recall must still be composed');
+  mustNot(out, 'Recalled: Aussie Thing', 'an Australian recall must never reach the US page');
+});
+
+// The flag selects rather than widens — proving the filter is a real per-country switch and not
+// a hardcoded "skip anything not US", which would quietly strand every future country.
+run('rail6b-country-flag-selects-the-other-way', {
+  seen: Object.fromEntries([rec(1, day(-1)), auRec]),
+  fbState: { backfill: [], posted: {} },
+  args: ['--country', 'au'],
+}, (out) => {
+  must(out, 'country     : AU only', 'the flag must be reflected in the header');
+  must(out, 'Recalled: Aussie Thing', 'the Australian recall must be composed when AU is selected');
+  mustNot(out, 'Recalled: Thing 1', 'the US recall must be refused when AU is selected');
+});
+
 run('rail3-per-run-cap', {
   seen: Object.fromEntries([rec(1, day(-5)), rec(2, day(-4)), rec(3, day(-3)), rec(4, day(-2)), rec(5, day(-1))]),
   fbState: { backfill: [], posted: {} },

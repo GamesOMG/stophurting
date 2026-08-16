@@ -33,7 +33,13 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(__dirname, '..', '..');
-const SKIP_DIRS = new Set(['node_modules', '.git', 'assets', '_port']);
+// ⛔ EACH ENTRY EARNS ITS PLACE WITH A REASON. A skip list that grows quietly is how a gate stops
+// covering what it was built for.
+//   · fixtures — captured pages from OTHER organisations' websites, kept as parser input for
+//     check-au-adapter.mjs. They are never served, never linked to and never rendered to a
+//     reader; their links point into productsafety.gov.au's own site tree, so resolving them
+//     against our disk is a category error that buries every real finding under 200 lines.
+const SKIP_DIRS = new Set(['node_modules', '.git', 'assets', '_port', 'fixtures']);
 
 function htmlFiles(dir, out = []) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {

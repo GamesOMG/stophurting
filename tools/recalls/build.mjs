@@ -20,6 +20,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 
 import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SOURCES, COUNTRIES, sourceFor, isoDay, clamp } from './sources.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -28,17 +29,30 @@ const ORIGIN = 'https://stophurting.org';
 const argOf = (f, d) => { const i = process.argv.indexOf(f); return i > -1 && process.argv[i + 1] ? process.argv[i + 1] : d; };
 
 // ---------- country ----------
-// ⭐ Pages live under /<cc>/recalls/. Moved here while there were only 134 of them: the same
-// change at 5,000 pages is a project, and Australia lands today so the structure is used
-// immediately rather than being speculative scaffolding.
+// ⭐ Pages live under /<cc>/recalls/. Moved while there were only 134 of them: the same change at
+// 5,000 pages is a project.
 // ⛔ /assets/img/recalls/<slug>/ is an ASSET path and deliberately does NOT move — it is not a
 // page URL, and rewriting it would orphan 134 mirrored photos for no reader benefit.
 // The old /recalls/... URLs 301 to /us/recalls/... via _redirects, so the published Facebook
 // link and anything already indexed keep working.
-const COUNTRY = argOf('--country', 'us');
-const cc = (r) => (r && r.country) || COUNTRY;
+//
+// ⭐⭐ THE DEFAULT IS EVERY COUNTRY, and that is the whole point of the Australian adapter.
+// The ACCC publishes a rolling 25 items with NO archive: a recall that scrolls off before we
+// poll is gone permanently, from them and from us. A default of "us" would have meant the 4-hourly
+// scheduled task kept polling only the US until somebody remembered to edit the task — which is
+// the same shape as a check that is in no gate. `--country us` still exists for a targeted run.
+const COUNTRY_ARG = argOf('--country', 'all');
+const TARGETS = COUNTRY_ARG === 'all' ? COUNTRIES : COUNTRY_ARG.split(',').map((s) => s.trim());
+for (const t of TARGETS) sourceFor(t);   // fail loudly on a typo, before any fetching
+// The country a record belongs to. Records written before Australia existed have no `country`
+// field, so US is the migration default — no state rewrite needed.
+const cc = (r) => (r && r.country) || 'us';
 const recallPath = (r) => `/${cc(r)}/recalls/${r.slug}/`;
-const hubPath = (c = COUNTRY) => `/${c}/recalls/`;
+const hubPath = (c) => `/${c}/recalls/`;
+// ⚠ The nav is rewritten onto EVERY html file in the repo by syncFooters(). It therefore cannot
+// depend on which country this run happens to be building, or a `--country au` run would
+// silently repoint all 150 pages at the Australian hub. It is a constant.
+const NAV_HUB = '/us/recalls/';
 const WRITE = process.argv.includes('--write') || process.argv.includes('--commit');
 const COMMIT = process.argv.includes('--commit');
 const sinceIdx = process.argv.indexOf('--since');
@@ -52,64 +66,28 @@ const state = existsSync(STATE_FILE)
 const esc = (s) => String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;');
-const slugify = (s) => String(s).toLowerCase()
-  .replace(/['’]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-  .split('-').slice(0, 8).join('-');
-const isoDay = (s) => String(s || '').slice(0, 10);
 const monthYear = (s) => new Date(isoDay(s) + 'T12:00:00Z')
   .toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
-const clamp = (s, n) => { s = String(s ?? '').trim(); return s.length <= n ? s : s.slice(0, n - 1).trimEnd() + '…'; };
 
-// Product part of a CPSC title. Handles both forms — "Product Recalled Due to X" and
-// "Company Recalls Product Due to X" — and prepends the brand when the product alone is
-// one generic word ("Mattresses"), because brand+product is the query people type.
-function productName(rec) {
-  let t = String(rec.Title).split(/\s+(?:Due to|Because)\b/i)[0].split(/;|—/)[0];
-  t = t.replace(/\s+Recall(?:s|ed)?\b/i, ' ').replace(/\s+/g, ' ').trim();
-  if (t.split(' ').length <= 1) {
-    const brand = (rec.Manufacturers?.[0]?.Name || rec.Importers?.[0]?.Name || '').split(',')[0].trim();
-    if (brand && !t.toLowerCase().includes(brand.toLowerCase())) t = `${brand} ${t}`.trim();
-  }
-  return t;
-}
-// Short hazard phrase: CPSC titles carry "Due to X Hazard(s)"; fall back to the Hazards field.
-function hazardShort(rec) {
-  const m = String(rec.Title).match(/Due to (?:Serious )?(?:Risk of )?(.*?)(?:;|$)/i);
-  if (m) return m[1].replace(/\s*Hazards?\s*$/i, ' hazard').trim();
-  const h = rec.Hazards?.[0]?.Name || '';
-  return clamp(h, 80) || 'safety hazard';
-}
-function soldAt(rec) {
-  const r = (rec.Retailers || []).map((x) => x.Name).filter(Boolean).join(' · ');
-  return r || rec.SoldAtLabel || '';
-}
-// 🪤 CPSC's NumberOfUnits usually ALREADY reads "About 213,500". Every caller here adds its own
-// "About"/"about", which shipped "About About 213,500 units" onto 121 of 134 pages — invisible to
-// every check we have, and caught only by reading a rendered page. Strip their qualifier so the
-// callers can own the wording.
-function unitCount(rec) {
-  return (rec.Products || []).map((p) => p.NumberOfUnits).filter(Boolean)
-    .map((u) => String(u).replace(/^\s*(about|approx\.?|approximately)\s+/i, '').trim())
-    .filter(Boolean).join(' + ') || '';
-}
-function remedyText(rec) {
-  const kinds = (rec.Remedies || []).map((r) => r.Name).filter(Boolean).join(' / ');
-  const opts = (rec.RemedyOptions || []).map((r) => r.Name).filter(Boolean).join(' / ');
-  return opts || kinds || '';
-}
+// ⭐ Every per-regulator detail — how a product name is derived, what a hazard phrase is, which
+// fact rows a notice carries, whether the feed returns a complete window — now lives in
+// sources.mjs, one adapter per country. This file renders CANONICAL records and knows nothing
+// about CPSC or the ACCC. That split is what makes the third country a config value instead of
+// another pass of surgery through the templates.
 
 // ---------- image mirror ----------
 let sharp = null;
 try { sharp = (await import('sharp')).default; } catch { /* raw copy fallback */ }
 async function mirrorImage(rec, slug) {
-  const src = rec.Images?.[0]?.URL;
+  const src = rec.image?.src;
   if (!src) return null;
   const dir = path.join(ROOT, 'assets', 'img', 'recalls', slug);
   const rel = `/assets/img/recalls/${slug}/1.webp`;
   const relRaw = `/assets/img/recalls/${slug}/1${path.extname(new URL(src).pathname) || '.png'}`;
+  const caption = rec.image.caption || '';
   for (const r of [rel, relRaw]) {
     const onDisk = path.join(ROOT, r.slice(1).split('/').join(path.sep));
-    if (existsSync(onDisk)) return { rel: r, caption: rec.Images[0].Caption || '' };
+    if (existsSync(onDisk)) return { rel: r, caption };
   }
   try {
     const res = await fetch(src, { headers: { 'user-agent': 'stophurting-recalls/1.0' } });
@@ -119,10 +97,10 @@ async function mirrorImage(rec, slug) {
     if (sharp) {
       await sharp(buf).resize({ width: 900, withoutEnlargement: true }).webp({ quality: 82 })
         .toFile(path.join(ROOT, rel.slice(1).split('/').join(path.sep)));
-      return { rel, caption: rec.Images[0].Caption || '' };
+      return { rel, caption };
     }
     writeFileSync(path.join(ROOT, relRaw.slice(1).split('/').join(path.sep)), buf);
-    return { rel: relRaw, caption: rec.Images[0].Caption || '' };
+    return { rel: relRaw, caption };
   } catch { return null; }
 }
 
@@ -143,8 +121,12 @@ const AD_HTML = (() => {
 // matching, no brand guessing. We do not store a brand field, and deriving one from the first
 // word of a product name is exactly the kind of confident guess that produces wrong pairings;
 // an omitted block is honest, a wrongly-related recall is not.
-function railLinks(items, slug, hazard) {
-  const others = items.filter((i) => i.slug !== slug);
+// ⚠ Country-scoped, deliberately. A reader on an Australian recall cannot act on a US notice —
+// different regulator, different retailers, different phone number — so cross-country rail links
+// would send them somewhere they can do nothing. The switch between countries belongs on the hub,
+// where it is a choice, not buried in a sidebar where it is a trap.
+function railLinks(items, slug, hazard, country) {
+  const others = items.filter((i) => i.slug !== slug && cc(i) === country);
   const sameHazard = hazard ? others.filter((i) => i.hazard === hazard).slice(0, 4) : [];
   const seen = new Set(sameHazard.map((i) => i.slug));
   const recent = others.filter((i) => !seen.has(i.slug)).slice(0, 6);
@@ -168,36 +150,25 @@ ${list.map((i) => `            <li><a href="${recallPath(i)}"><span class="rail-
 }
 
 // ---------- page template ----------
-function recallPage(rec, slug, img, items) {
-  const prod = productName(rec);
-  const hz = hazardShort(rec);
-  const date = isoDay(rec.RecallDate);
-  const units = unitCount(rec);
-  const remedy = remedyText(rec);
-  const sold = soldAt(rec);
+function recallPage(rec, img, items) {
+  const src = sourceFor(cc(rec));
+  const { slug, prod, date } = rec;
+  const hz = rec.hazard;
   // ≤60 chars total, and the word "Recall" is the query — it must never be the part that
   // truncates. No brand suffix: at DR 0 the brand buys nothing and costs 14 chars.
-  const shortMY = new Date(isoDay(rec.RecallDate) + 'T12:00:00Z')
+  const shortMY = new Date(date + 'T12:00:00Z')
     .toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
   const title = `${clamp(prod, 42)} Recall (${shortMY})`;
-  const desc = clamp(`${prod} recalled${units ? ` (about ${units} units)` : ''}: ${hz}. What was sold, what to do, and how to get the ${remedy ? remedy.toLowerCase() : 'remedy'} — from the official CPSC notice.`, 158);
-  const rows = [
-    ['What', prod],
-    units && ['How many', `About ${units} units`],
-    ['The hazard', rec.Hazards?.[0]?.Name || hz],
-    sold && ['Sold at', sold],
-    remedy && ['Remedy', remedy],
-    rec.ConsumerContact && ['Contact', rec.ConsumerContact],
-    ['Recall date', date + ` (recall no. ${rec.RecallNumber})`],
-  ].filter(Boolean);
+  const desc = rec.desc;
+  const rows = rec.rows;
   const ld = {
     '@context': 'https://schema.org', '@type': 'Article',
-    headline: `${prod} Recall (${monthYear(rec.RecallDate)})`,
+    headline: `${prod} Recall (${monthYear(date)})`,
     description: desc,
     author: { '@type': 'Organization', name: 'StopHurting', url: ORIGIN },
     publisher: { '@type': 'Organization', name: 'StopHurting', url: ORIGIN },
-    mainEntityOfPage: `${ORIGIN}${recallPath({ slug })}`,
-    datePublished: date, dateModified: isoDay(rec.LastPublishDate) || date,
+    mainEntityOfPage: `${ORIGIN}${recallPath(rec)}`,
+    datePublished: date, dateModified: rec.modified || date,
   };
   return `<!doctype html>
 <html lang="en">
@@ -206,8 +177,8 @@ function recallPage(rec, slug, img, items) {
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${esc(title)}</title>
   <meta name="description" content="${esc(desc)}" />
-  <link rel="canonical" href="${ORIGIN}${recallPath({ slug })}" />
-  <meta property="og:title" content="${esc(`${prod} Recall (${monthYear(rec.RecallDate)})`)}" />
+  <link rel="canonical" href="${ORIGIN}${recallPath(rec)}" />
+  <meta property="og:title" content="${esc(`${prod} Recall (${monthYear(date)})`)}" />
   <meta property="og:description" content="${esc(desc)}" />
 ${img ? `  <meta property="og:image" content="${ORIGIN}${esc(img.rel)}" />\n` : ''}  <meta property="og:type" content="article" />
   ${FAVICON}
@@ -218,11 +189,11 @@ ${img ? `  <meta property="og:image" content="${ORIGIN}${esc(img.rel)}" />\n` : 
   ${HEADER}
   <main>
     <article class="recall-shell">
-      <div class="breadcrumb"><a href="/">Home</a> &nbsp;/&nbsp; <a href="${hubPath()}">Recalls</a></div>
+      <div class="breadcrumb"><a href="/">Home</a> &nbsp;/&nbsp; <a href="${hubPath(cc(rec))}">${esc(src.hubCrumb)}</a></div>
       <header class="article-header">
         <span class="chip chip-recall">Recall</span>
-        <h1>${esc(prod)} Recall (${esc(monthYear(rec.RecallDate))})</h1>
-        <p class="dek">${esc(clamp(hz.charAt(0).toUpperCase() + hz.slice(1), 160))}${units ? ` — about ${esc(units)} units.` : '.'}</p>
+        <h1>${esc(prod)} Recall (${esc(monthYear(date))})</h1>
+        <p class="dek">${esc(rec.dek)}</p>
       </header>
       <div class="recall-layout">
         <div class="rl-facts">
@@ -234,13 +205,13 @@ ${rows.map(([k, v]) => `              <tr><th>${esc(k)}</th><td>${esc(v)}</td></
         </div>
         <div class="rl-body">
 ${img ? `          <figure class="recall-img"><img src="${esc(img.rel)}" alt="${esc(img.caption || prod + ' — recalled product')}" loading="lazy" />${img.caption ? `<figcaption>${esc(img.caption)}</figcaption>` : ''}</figure>\n` : ''}          <div class="prose">
-            <h2>What was recalled</h2>
-            <p>${esc(rec.Description)}</p>
-${remedy ? `            <h2>What to do</h2>\n            <p>Stop using the product. The listed remedy is: <strong>${esc(remedy)}</strong>. ${esc(rec.ConsumerContact || '')}</p>\n` : ''}            <p class="recall-source">Source: <a href="${esc(rec.URL)}" target="_blank" rel="noopener">the official CPSC recall notice</a>, published ${esc(date)}. Every fact on this page comes from that notice — if anything here disagrees with it, the notice wins.</p>
+${rec.sections.map((s) => `            <h2>${esc(s.h2)}</h2>\n            ${s.html}`).join('\n')}
+            <p class="recall-source">Source: <a href="${esc(rec.url)}" target="_blank" rel="noopener">the official ${esc(src.noticeName)}</a>, published ${esc(date)}. Every fact on this page comes from that notice — if anything here disagrees with it, the notice wins.</p>
+${src.attribution ? `            <p class="recall-licence">${src.attribution}</p>\n` : ''}
           </div>
         </div>
         <aside class="rl-side">
-${AD_HTML ? `          <div class="rl-ad" aria-label="Advertisement">${AD_HTML}</div>\n` : ''}          <div class="rl-rail">${railLinks(items || [], slug, hazardShort(rec))}
+${AD_HTML ? `          <div class="rl-ad" aria-label="Advertisement">${AD_HTML}</div>\n` : ''}          <div class="rl-rail">${railLinks(items || [], slug, hz, cc(rec))}
           </div>
         </aside>
       </div>
@@ -254,14 +225,20 @@ ${AD_HTML ? `          <div class="rl-ad" aria-label="Advertisement">${AD_HTML}<
 
 // ---------- hub + homepage + sitemap ----------
 const SEAL = `<svg viewBox="0 0 24 26" aria-hidden="true"><path d="M12 1l10 4v7c0 6.5-4.3 11.3-10 13C6.3 23.3 2 18.5 2 12V5l10-4z" fill="#e07b39"/><path d="M7.5 12.5l3 3 6-6" stroke="#16334f" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-const HEADER = `<header class="site-header"><div class="wrap header-inner"><a class="brand" href="/"><span class="brand-mark">${SEAL}</span><span class="brand-name">Stop<span class="brand-accent">Hurting</span></span></a><nav class="nav"><a href="${hubPath()}">Recalls</a><a href="/updates/">Corrections</a><a href="/myths/">Myth Checks</a><a href="/about/">About</a></nav></div></header>`;
+const HEADER = `<header class="site-header"><div class="wrap header-inner"><a class="brand" href="/"><span class="brand-mark">${SEAL}</span><span class="brand-name">Stop<span class="brand-accent">Hurting</span></span></a><nav class="nav"><a href="${NAV_HUB}">Recalls</a><a href="/updates/">Corrections</a><a href="/myths/">Myth Checks</a><a href="/about/">About</a></nav></div></header>`;
 // ⭐ The footer links are not decoration: AdSense expects a reachable privacy policy and a way to
 // contact the site owner, and their absence is a standard site-level rejection.
 // ⭐ Not decoration: AdSense expects a reachable privacy policy and a way to contact the owner,
 // and their absence is a standard site-level rejection.
 // 🚧 Contact is added here the moment /contact/ exists — the dead-links check refuses a footer
 // link to a page that is not on disk, which is exactly what it is for.
-const FOOTER = `<footer class="site-footer"><div class="wrap">© StopHurting — recall data from the U.S. Consumer Product Safety Commission (public domain). Not legal or medical advice. &nbsp;·&nbsp; <a href="/updates/">Corrections</a> &nbsp;·&nbsp; <a href="/privacy/">Privacy</a> &nbsp;·&nbsp; <a href="/contact/">Contact</a> &nbsp;·&nbsp; <a href="/about/">About</a></div></footer>`;
+// ⭐ THE CREDIT LINE IS BUILT FROM THE SOURCE REGISTRY, not typed. It used to name the CPSC and
+// only the CPSC — which was true of a site with one country and became a false statement about
+// our own licensing the moment Australian pages existed. The ACCC's CC BY 4.0 licence REQUIRES
+// attribution; a hard-coded footer is exactly the kind of thing nobody remembers to update, so
+// adding a source to the registry now adds its credit here automatically.
+const CREDITS = COUNTRIES.map((c) => SOURCES[c].footerCredit).join('. ');
+const FOOTER = `<footer class="site-footer"><div class="wrap">© StopHurting — ${CREDITS}. Not legal or medical advice. &nbsp;·&nbsp; <a href="/updates/">Corrections</a> &nbsp;·&nbsp; <a href="/privacy/">Privacy</a> &nbsp;·&nbsp; <a href="/contact/">Contact</a> &nbsp;·&nbsp; <a href="/about/">About</a></div></footer>`;
 const FAVICON = `<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26'><path d='M12 1l10 4v7c0 6.5-4.3 11.3-10 13C6.3 23.3 2 18.5 2 12V5l10-4z' fill='%23e07b39'/><path d='M7.5 12.5l3 3 6-6' stroke='%2316334f' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />`;
 
 // ⭐ THE HUB IS NOW PHOTO-LED. Jason: "the long list on a white background is just bothering me…
@@ -273,7 +250,7 @@ const FAVICON = `<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://ww
 // slices the product in half fails at its only job.
 function card(r) {
   return `        <a class="r-card" href="${recallPath(r)}">
-          <span class="r-card-img"><img src="/assets/img/recalls/${r.slug}/1.webp" alt="${esc(r.prod)}" loading="lazy" width="400" height="300" /></span>
+          <span class="r-card-img"><img src="${esc(r.img || `/assets/img/recalls/${r.slug}/1.webp`)}" alt="${esc(r.prod)}" loading="lazy" width="400" height="300" /></span>
           <span class="r-card-body">
             <span class="r-card-prod">${esc(clamp(r.prod, 64))}</span>
             <span class="r-card-hazard">${esc(clamp(r.hazard, 70))}</span>
@@ -296,16 +273,31 @@ function ticker(items) {
     .join('<span class="ticker-sep">•</span>');
   return `<div class="ticker" aria-label="Latest recalls"><span class="ticker-label">LATEST</span><div class="ticker-clip"><div class="ticker-track">${five}<span class="ticker-sep">•</span>${five}</div></div></div>`;
 }
-function hubPage(items) {
-  const rows = items.map(row).join('\n');
+// ⭐ Every country gets its own hub, and each hub lists ONLY its own recalls. The list used to be
+// rebuilt from the whole of state.seen, which was correct while state held one country and would
+// have put 134 US recalls on /au/recalls/ the first time Australia ran — with the Australian hub's
+// own heading over them.
+// The country strip is the minimum that stops /au/ being an orphan: it is reachable from the US
+// hub, the ticker and the sitemap, and nothing else links into it. A fuller switcher is Jason's
+// next call, not something to guess at here.
+// ⛔ NO FLAG EMOJI. Windows ships no regional-indicator glyphs, so 🇦🇺 renders as the letters "AU"
+// in a box on the machine this is built and reviewed on. Words, not flags.
+function countryStrip(current) {
+  return `<nav class="hub-countries" aria-label="Choose a country">${COUNTRIES.map((c) => {
+    const s = SOURCES[c];
+    return `<a class="hub-cc${c === current ? ' on' : ''}"${c === current ? ' aria-current="page"' : ''} href="${hubPath(c)}"><span class="hub-cc-code">${c.toUpperCase()}</span>${esc(s.country)}</a>`;
+  }).join('')}</nav>`;
+}
+function hubPage(items, country) {
+  const src = sourceFor(country);
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Product Recalls, Tracked Daily — StopHurting</title>
-  <meta name="description" content="Every U.S. consumer product recall, posted as it drops — what was recalled, the hazard, and what to do, straight from the official CPSC notices. ${items.length} tracked." />
-  <link rel="canonical" href="${ORIGIN}${hubPath()}" />
+  <title>${esc(src.hubTitle)}</title>
+  <meta name="description" content="${esc(src.hubDesc(items.length))}" />
+  <link rel="canonical" href="${ORIGIN}${hubPath(country)}" />
   ${FAVICON}
   <link rel="stylesheet" href="/assets/css/style.css" />
 </head>
@@ -314,8 +306,9 @@ function hubPage(items) {
   ${ticker(items)}
   <main>
     <section class="wrap section">
-      <h1 class="section-title">Product recalls, tracked daily</h1>
-      <p class="section-sub">Straight from the official CPSC notices — what was recalled, why it's dangerous, and what to do about it. Newest first, updated automatically. ${items.length} tracked since June 2026.</p>
+      <h1 class="section-title">${esc(src.hubHeading)}</h1>
+      ${countryStrip(country)}
+      <p class="section-sub">${esc(src.hubIntro(items.length))}</p>
       <div class="search-box" style="margin:0 0 1.2rem"><input id="q" type="search" placeholder="Search a brand, product, or model number…" autocomplete="off" style="border:1px solid var(--light)" /></div>
       <div class="r-grid" id="hub-list">
 ${items.map(card).join('\n')}
@@ -336,8 +329,11 @@ ${items.map(card).join('\n')}
       if (!idx) { load(); return; }
       var hits = idx.filter(function (r) { return r.t.indexOf(t) > -1; }).slice(0, 40);
       host.innerHTML = hits.length
-        ? hits.map(function (r) { return '<a class="r-card" href="/' + (r.cc || 'us') + '/recalls/' + r.slug + '/"><span class="r-card-img"><img src="/assets/img/recalls/' + r.slug + '/1.webp" alt="" loading="lazy" /></span><span class="r-card-body"><span class="r-card-prod">' + r.prod + '</span><span class="r-card-hazard">' + r.hazard + '</span><span class="r-card-date">' + r.date + '</span></span></a>'; }).join('')
-        : '<p class="r-empty">No tracked recall matches that — we cover CPSC recalls from June 2026 onward.</p>';
+        // Search spans every country on purpose — "is my thing recalled" does not stop at a
+        // border, and the same product is often recalled in both. So each RESULT carries its
+        // country code, which the hub grid does not need (there, every card is that country).
+        ? hits.map(function (r) { var cc = (r.cc || 'us').toUpperCase(); return '<a class="r-card" href="/' + (r.cc || 'us') + '/recalls/' + r.slug + '/"><span class="r-card-img"><img src="/assets/img/recalls/' + r.slug + '/1.webp" alt="" loading="lazy" /></span><span class="r-card-body"><span class="r-card-prod"><span class="r-card-cc">' + cc + '</span>' + r.prod + '</span><span class="r-card-hazard">' + r.hazard + '</span><span class="r-card-date">' + r.date + '</span></span></a>'; }).join('')
+        : '<p class="r-empty">No tracked recall matches that — we cover US and Australian recalls from June 2026 onward.</p>';
     });
   })();
   </script>
@@ -363,11 +359,13 @@ function updatesPage(items) {
       <ul class="r-list">
 ${list.map(render).join('\n')}
       </ul>`);
+  // ⚠ Worded for every regulator, not just the CPSC. These two sentences named the CPSC while the
+  // page listed a country it had nothing to do with — the same class of stale copy as the footer.
   const body = block(
-    'Withdrawn notices', 'The CPSC notice behind these pages was withdrawn or replaced. The page is kept so anyone who bookmarked it finds out.',
+    'Withdrawn notices', 'The official notice behind these pages was withdrawn or replaced. The page is kept so anyone who bookmarked it finds out.',
     withdrawn, (r) => row(r, r.withdrawn, 'withdrawn — see the official notice'))
     + block(
-    'Corrected pages', 'The CPSC amended these notices after we first published them. Each page was rebuilt from the updated record.',
+    'Corrected pages', 'The regulator amended these notices after we first published them. Each page was rebuilt from the updated record.',
     amended, (r) => row(r, r.amendedAt, `updated — notice revised ${r.modified}`));
 
   return `<!doctype html>
@@ -637,7 +635,9 @@ function writeSearchIndex(items) {
   writeFileSync(path.join(ROOT, 'recalls-index.json'), JSON.stringify(idx));
 }
 function sitemap(items) {
-  const staticPages = ['', 'about/', 'privacy/', 'contact/', 'updates/', `${COUNTRY}/recalls/`,
+  // Every hub, not just the one this run built — a sitemap that lists only today's country would
+  // drop the other country's hub out of the index on the next run.
+  const staticPages = ['', 'about/', 'privacy/', 'contact/', 'updates/', ...COUNTRIES.map((c) => `${c}/recalls/`),
     ...execSync('git ls-files', { cwd: ROOT }).toString().split('\n')
       .filter((f) => /^[a-z0-9-]+\/index\.html$/.test(f) && !f.startsWith('recalls'))
       .map((f) => f.replace('index.html', ''))];
@@ -674,86 +674,118 @@ const earliestSeen = Object.values(state.seen).map((r) => r.date).sort()[0];
 const since = sinceIdx > -1 ? process.argv[sinceIdx + 1]
   : REBUILD && earliestSeen ? earliestSeen
   : new Date(Date.now() - DEFAULT_WINDOW_DAYS * 864e5).toISOString().slice(0, 10);
-const res = await fetch(`https://www.saferproducts.gov/RestWebServices/Recall?format=json&RecallDateStart=${since}`);
-if (!res.ok) { console.error(`CPSC feed HTTP ${res.status} — aborting, state untouched.`); process.exit(1); }
-const feed = await res.json();
-// ⭐ RECONCILE, not just append. The original filter skipped every recall we had already seen,
-// which meant two silent failures on a site whose whole promise is "the official notice wins":
-//   · CPSC AMENDS recalls constantly — units, remedies, added models. LastPublishDate moves and
-//     we already store it as `modified`, but nothing compared them, so our page kept the original
-//     text forever.
-//   · CPSC WITHDRAWS recalls. The record leaves the feed, state.seen keeps it, and the page stays
-//     up telling people a product is dangerous when the notice behind it is gone.
-const seenIds = new Set(Object.keys(state.seen));
-const feedIds = new Set(feed.map((r) => String(r.RecallID)));
-const amended = REBUILD ? [] : feed.filter((r) => {
-  const prev = state.seen[r.RecallID];
-  return prev && isoDay(r.LastPublishDate) && isoDay(r.LastPublishDate) !== prev.modified;
-});
-// ⛔ ABSENCE NEVER DELETES. Only recalls whose date falls INSIDE the window we just fetched can
-// meaningfully be "missing" — anything older simply was not requested. And even then this only
-// REPORTS: a CPSC outage or an API change would otherwise wipe pages wholesale, and a page we
-// wrongly deleted is unrecoverable while a page we wrongly kept is one edit away from correct.
-const vanished = [...seenIds].filter((id) => {
-  const r = state.seen[id];
-  return r.date >= since && !feedIds.has(String(id));
-});
-const fresh = REBUILD ? feed : [...feed.filter((r) => !state.seen[r.RecallID]), ...amended];
-console.log(`feed: ${feed.length} recalls since ${since} · ${REBUILD ? 'REBUILD all' : 'new'}: ${fresh.length - amended.length} · amended: ${amended.length}`);
-for (const r of amended) console.log(`  ~ AMENDED since we published: ${state.seen[r.RecallID].slug} (${state.seen[r.RecallID].modified} -> ${isoDay(r.LastPublishDate)})`);
-if (vanished.length) {
-  console.log(`\n🔴 ${vanished.length} recall(s) are on our site but NO LONGER IN THE CPSC FEED for this window.`);
-  console.log(`   These pages still say a product is recalled. Check each against the official notice —`);
-  console.log(`   withdrawn, or a feed glitch? NOTHING is deleted automatically.`);
-  for (const id of vanished) console.log(`   · ${state.seen[id].slug}  (recall no. ${state.seen[id].num}, ${state.seen[id].date})`);
-  console.log('');
-}
-if (!fresh.length && !WRITE) process.exit(0);
 
-// TWO PASSES, and the split is load-bearing. The rail's "same hazard" / "recent recalls" links
-// are built from state, so writing a page before the whole batch is in state means a CPSC batch
-// of five never cross-links — each page would only see the recalls that happened to precede it.
-// Pass 1 records everything; pass 2 renders against the complete picture.
 const newUrls = [];
 const prepared = [];
-for (const rec of fresh) {
-  const slug = `${slugify(productName(rec))}-recall-${rec.RecallNumber}`;
-  if (!WRITE) { console.log(`  would add: ${slug}`); continue; }
-  const img = await mirrorImage(rec, slug);
-  const models = [
-    ...(rec.Products || []).map((p) => p.Model).filter(Boolean),
-    ...(rec.ProductUPCs || []).map((u) => (typeof u === 'string' ? u : u?.UPC)).filter(Boolean),
-  ].join(' ');
-  const wasSeen = !!state.seen[rec.RecallID];
-  const prev = state.seen[rec.RecallID];
-  // Stamp WHEN WE CORRECTED IT, separately from CPSC's own revision date — the corrections page
-  // sorts on ours, because that is the order a reader needs to see changes in.
-  const amendedAt = (prev && isoDay(rec.LastPublishDate) && prev.modified !== isoDay(rec.LastPublishDate))
-    ? new Date().toISOString().slice(0, 10) : (prev ? prev.amendedAt : undefined);
-  state.seen[rec.RecallID] = {
-    ...(prev || {}),
-    slug, prod: productName(rec), hazard: hazardShort(rec),
-    date: isoDay(rec.RecallDate), modified: isoDay(rec.LastPublishDate), num: rec.RecallNumber,
-    models,
-    ...(amendedAt ? { amendedAt } : {}),
-  };
-  if (!wasSeen) newUrls.push(`${ORIGIN}${recallPath({ slug })}`);
-  prepared.push({ rec, slug, img });
+
+// ⭐ RECONCILE, not just append. Skipping every recall we have already seen meant two silent
+// failures on a site whose whole promise is "the official notice wins":
+//   · regulators AMEND recalls constantly — units, remedies, added models. The revision shows up
+//     in a field the source declares (`revisionKey`), and nothing compared them, so our page kept
+//     the original text forever.
+//   · regulators WITHDRAW recalls. The record leaves the feed, state.seen keeps it, and the page
+//     stays up telling people a product is dangerous when the notice behind it is gone.
+for (const country of TARGETS) {
+  const src = sourceFor(country);
+  const known = new Map(Object.entries(state.seen)
+    .filter(([, r]) => cc(r) === country)
+    .map(([id, r]) => [id, { ...r, id, country }]));
+
+  let records;
+  try {
+    records = await src.fetch({ since, known, rebuild: REBUILD });
+  } catch (e) {
+    // ⛔ One regulator being down must not take the other's build with it, and must never let a
+    // half-built run write state. Skip this country, keep the rest.
+    console.error(`🔴 ${country.toUpperCase()} feed failed: ${e.message} — skipping ${country}, state untouched for it.`);
+    continue;
+  }
+
+  const key = src.revisionKey;
+  const fresh = [];
+  const amendedList = [];
+  for (const rec of records) {
+    const prev = state.seen[rec.id];
+    if (!prev) { fresh.push(rec); continue; }
+    if (REBUILD) { fresh.push(rec); continue; }
+    if (rec.unchanged) continue;
+    if (rec[key] && prev[key] !== rec[key]) { fresh.push(rec); amendedList.push(rec); }
+  }
+
+  // ⛔⛔ WITHDRAWAL DETECTION IS "IN OUR STATE BUT ABSENT FROM THE FEED", WHICH IS ONLY MEANINGFUL
+  // WHERE THE FEED RETURNS A COMPLETE WINDOW. Australia's is a rolling 25 with no archive: every
+  // page older than the newest 25 is "absent" on every run, so this would report the entire
+  // country withdrawn, every four hours, forever. The source declares whether it can be asked.
+  // ⚠ The OFF case still prints. Silence would read as "nothing was withdrawn", which is a claim
+  // we cannot make about a feed that does not tell us.
+  if (src.completeWindow) {
+    const feedIds = new Set(records.map((r) => String(r.id)));
+    // ⛔ ABSENCE NEVER DELETES. Only recalls whose date falls INSIDE the window we just fetched
+    // can meaningfully be "missing" — anything older simply was not requested. And even then this
+    // only REPORTS: a feed outage or an API change would otherwise wipe pages wholesale, and a
+    // page we wrongly deleted is unrecoverable while a page we wrongly kept is one edit away.
+    const vanished = [...known.keys()].filter((id) => known.get(id).date >= since && !feedIds.has(String(id)));
+    if (vanished.length) {
+      console.log(`\n🔴 ${vanished.length} ${country.toUpperCase()} recall(s) are on our site but NO LONGER IN THE ${src.agencyShort} FEED for this window.`);
+      console.log(`   These pages still say a product is recalled. Check each against the official notice —`);
+      console.log(`   withdrawn, or a feed glitch? NOTHING is deleted automatically.`);
+      for (const id of vanished) console.log(`   · ${state.seen[id].slug}  (${state.seen[id].num || 'no recall no.'}, ${state.seen[id].date})`);
+      console.log('');
+    }
+  } else {
+    console.log(`${country.toUpperCase()}: withdrawal check OFF — ${src.agencyShort} publishes a rolling window with no archive, so "absent from the feed" says nothing about withdrawal.`);
+  }
+
+  console.log(`${country.toUpperCase()} feed: ${records.length} record(s) · ${REBUILD ? 'REBUILD all' : 'new'}: ${fresh.length - amendedList.length} · amended: ${amendedList.length}`);
+  for (const r of amendedList) console.log(`  ~ AMENDED since we published: ${r.slug} (${state.seen[r.id][key]} -> ${r[key]})`);
+
+  for (const rec of fresh) {
+    if (!WRITE) { console.log(`  would add: ${country}/${rec.slug}`); continue; }
+    const img = await mirrorImage(rec, rec.slug);
+    const prev = state.seen[rec.id];
+    // Stamp WHEN WE CORRECTED IT, separately from the regulator's own revision marker — the
+    // corrections page sorts on ours, because that is the order a reader needs to see changes in.
+    const amendedAt = (prev && rec[key] && prev[key] !== rec[key])
+      ? new Date().toISOString().slice(0, 10) : (prev ? prev.amendedAt : undefined);
+    state.seen[rec.id] = {
+      ...(prev || {}),
+      country,
+      slug: rec.slug, prod: rec.prod, hazard: rec.hazard,
+      date: rec.date, modified: rec.modified, num: rec.num,
+      models: rec.models,
+      ...(rec.hash ? { hash: rec.hash } : {}),
+      ...(img ? { img: img.rel } : {}),
+      ...(amendedAt ? { amendedAt } : {}),
+    };
+    if (!prev) newUrls.push(`${ORIGIN}${recallPath(rec)}`);
+    prepared.push({ rec, img });
+  }
 }
+
+// TWO PASSES, and the split is load-bearing. The rail's "same hazard" / "recent recalls" links
+// are built from state, so writing a page before the whole batch is in state means a batch of
+// five never cross-links — each page would only see the recalls that happened to precede it.
+// Pass 1 (above) records everything; pass 2 renders against the complete picture.
+if (!prepared.length && !WRITE) process.exit(0);
 if (prepared.length) {
   const all = Object.values(state.seen).sort((a, b) => b.date.localeCompare(a.date));
-  for (const { rec, slug, img } of prepared) {
-    const dir = path.join(ROOT, COUNTRY, 'recalls', slug);
+  for (const { rec, img } of prepared) {
+    const dir = path.join(ROOT, cc(rec), 'recalls', rec.slug);
     mkdirSync(dir, { recursive: true });
-    writeFileSync(path.join(dir, 'index.html'), recallPage(rec, slug, img, all));
-    console.log(`  + ${slug}`);
+    writeFileSync(path.join(dir, 'index.html'), recallPage(rec, img, all));
+    console.log(`  + ${cc(rec)}/${rec.slug}`);
   }
 }
 
 if (WRITE) {
   const items = Object.values(state.seen).sort((a, b) => b.date.localeCompare(a.date));
-  mkdirSync(path.join(ROOT, COUNTRY, 'recalls'), { recursive: true });
-  writeFileSync(path.join(ROOT, COUNTRY, 'recalls', 'index.html'), hubPage(items));
+  // ⭐ EVERY hub is rewritten every run, not just the countries this run fetched: the hubs carry
+  // each other's links and a shared "N tracked" count, so building one alone leaves the other
+  // stale the moment a recall lands.
+  for (const c of COUNTRIES) {
+    mkdirSync(path.join(ROOT, c, 'recalls'), { recursive: true });
+    writeFileSync(path.join(ROOT, c, 'recalls', 'index.html'), hubPage(items.filter((r) => cc(r) === c), c));
+  }
   writeFileSync(path.join(ROOT, '404.html'), notFoundPage(items));
   mkdirSync(path.join(ROOT, 'updates'), { recursive: true });
   writeFileSync(path.join(ROOT, 'updates', 'index.html'), updatesPage(items));
