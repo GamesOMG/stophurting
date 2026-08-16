@@ -11,8 +11,9 @@
 //
 // Usage: node tools/recalls/check-fb-post.mjs
 
-import { writeFileSync, mkdtempSync, rmSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { writeFileSync, readFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { execFileSync, execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -139,7 +140,22 @@ run('composes-from-cpsc-fields-only', {
   must(out, 'Recalled: Acme Drop-Side Crib', 'product comes from the record');
   must(out, 'Hazard: Entrapment', 'hazard comes from the record, sentence-cased');
   mustNot(out, 'Entrapment hazard', 'the label already says Hazard: — the duplicate word must be dropped');
-  must(out, 'https://stophurting.org/recalls/crib-recall-26123/', 'the canonical URL must be the link');
+  must(out, '[card] https://stophurting.org/recalls/crib-recall-26123/', 'the canonical URL must still be sent as the link');
+});
+
+// MEASURED on the first live post: Facebook folds the message behind "See more" after ~2 lines,
+// which hid the hazard. The message must stay short enough to survive that fold, and must NOT
+// carry a CTA line — Facebook strips its URL anyway and the card already does that job.
+run('message-survives-the-see-more-fold', {
+  seen: { id1: { slug: 'crib-recall-26123', prod: 'Acme Drop-Side Crib', hazard: 'entrapment hazard', date: day(-1), num: '26123' } },
+  fbState: { backfill: [], posted: {} },
+}, (out) => {
+  const m = out.match(/\(message (\d+) chars/);
+  if (!m) throw new Error('the dry run must report the message length');
+  if (Number(m[1]) > 120) throw new Error(`message is ${m[1]} chars — over the ~120 fold budget`);
+  mustNot(out, 'official CPSC notice', 'the CTA line must not come back; it is invisible behind the fold');
+  const lines = out.split('\n').filter((l) => l.startsWith('   │ ') && !l.includes('[card]') && !l.includes('(message '));
+  if (lines.length > 2) throw new Error(`message is ${lines.length} lines — two is the budget`);
 });
 
 // The de-dupe must not eat a hazard that merely CONTAINS the word mid-phrase.
@@ -150,6 +166,74 @@ run('hazard-dedupe-only-strips-the-tail', {
   must(out, 'Hazard: Hazardous chemical exposure', 'only the trailing word goes');
 });
 
+// ── PUBLISH PATH, against a local fake Graph ───────────────────────────────────────────────
+// Everything above proves the rails REFUSE. Nothing above ever exercised an actual publish —
+// and "we'll fix it when it breaks" is not a plan for the one code path that talks to a live
+// page. The fake lets us drive --commit safely, including the failure we have not yet seen in
+// the wild: Facebook accepting the post but rendering no link card.
+console.log('\npublish path (fake Graph):');
+
+const { createServer } = await import('node:http');
+let cardMode = 'rendered';
+const seenCalls = [];
+const server = createServer((req, res) => {
+  seenCalls.push(`${req.method} ${req.url.split('?')[0]}`);
+  const send = (o) => { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
+  if (req.method === 'GET' && req.url.includes('fields=access_token')) return send({ access_token: 'FAKE-PAGE-TOKEN' });
+  if (req.method === 'POST' && req.url.includes('/feed')) return send({ id: 'PAGE_POST_1' });
+  if (req.method === 'GET' && req.url.includes('attachments')) {
+    return send(cardMode === 'rendered'
+      ? { id: 'PAGE_POST_1', attachments: { data: [{ url: 'https://stophurting.org/x/', media_type: 'link' }] } }
+      : { id: 'PAGE_POST_1' });                       // Facebook accepted the post but scraped nothing
+  }
+  if (req.method === 'POST' && req.url.includes('/comments')) return send({ id: 'COMMENT_1' });
+  send({});
+});
+await new Promise((r) => server.listen(0, '127.0.0.1', r));
+const base = `http://127.0.0.1:${server.address().port}`;
+
+// 🪤 MUST be async. execFileSync blocks this process's event loop, so the in-process fake Graph
+// could never answer the child — the child hung on fetch and the whole suite stalled forever.
+// A synchronous subprocess and an in-process server cannot coexist.
+const execFileAsync = promisify(execFile);
+async function runPublish(name, mode, assert) {
+  cardMode = mode;
+  seenCalls.length = 0;
+  const stateFile = path.join(tmp, `${name}-state.json`);
+  const fbFile = path.join(tmp, `${name}-fb.json`);
+  const tokFile = path.join(tmp, `${name}-tok.txt`);
+  writeFileSync(stateFile, JSON.stringify({ seen: Object.fromEntries([rec(1, day(-1))]), indexnowKey: 'x' }));
+  writeFileSync(fbFile, JSON.stringify({ backfill: [], posted: {} }));
+  writeFileSync(tokFile, '222728804264171\nFIXTURE-NOT-A-REAL-TOKEN-000000000000\n');
+  let out;
+  try {
+    const r = await execFileAsync(process.execPath, [SCRIPT, '--commit', '--pause', '0'], {
+      env: { ...process.env, SH_STATE_FILE: stateFile, SH_FB_STATE_FILE: fbFile, SH_FB_TOKEN_FILE: tokFile, SH_FB_GRAPH_BASE: base },
+      encoding: 'utf8',
+      timeout: 15000,
+    });
+    out = r.stdout;
+  } catch (e) { out = `${e.stdout || ''}${e.stderr || ''}`; }
+  const state = JSON.parse(readFileSync(fbFile, 'utf8'));
+  try { assert(out, state, seenCalls); console.log(`  ✅ ${name}`); pass++; }
+  catch (e) { console.log(`  ❌ ${name}\n     ${e.message}\n--- output ---\n${out}\n--------------`); fail++; }
+}
+
+await runPublish('publish-records-post-id-and-card', 'rendered', (out, state, calls) => {
+  must(out, '✅ posted PAGE_POST_1', 'the post id must be reported');
+  if (state.posted.id1?.postId !== 'PAGE_POST_1') throw new Error('post id must be persisted to fb-state');
+  if (state.posted.id1?.card !== 'rendered') throw new Error(`card should be "rendered", got ${state.posted.id1?.card}`);
+  if (calls.some((c) => c.includes('/comments'))) throw new Error('a rendered card must NOT trigger a comment');
+});
+
+await runPublish('self-heals-when-no-card-renders', 'none', (out, state, calls) => {
+  must(out, 'no link card', 'the missing card must be announced, not swallowed');
+  must(out, 'posted the URL as a comment', 'the self-heal must fire');
+  if (!calls.some((c) => c.includes('/comments'))) throw new Error('a comment must actually be posted');
+  if (state.posted.id1?.card !== 'self-healed-comment') throw new Error(`card should record the self-heal, got ${state.posted.id1?.card}`);
+});
+
+server.close();
 rmSync(tmp, { recursive: true, force: true });
 console.log(`\n${pass} passed · ${fail} failed`);
 process.exitCode = fail ? 1 : 0;

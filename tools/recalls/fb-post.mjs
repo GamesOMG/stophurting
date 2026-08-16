@@ -48,7 +48,10 @@ const STATE_FILE = process.env.SH_STATE_FILE || path.join(HERE, 'state.json');
 const FB_STATE_FILE = process.env.SH_FB_STATE_FILE || path.join(HERE, 'fb-state.json');
 const TOKEN_FILE = process.env.SH_FB_TOKEN_FILE || 'C:\\Users\\ImNot\\.secrets\\stophurting-fb-token.txt';
 const ORIGIN = 'https://stophurting.org';
-const GRAPH = 'https://graph.facebook.com/v21.0';
+// Overridable only so check-fb-post.mjs can point the publish path at a local fake Graph. The
+// publish path cannot otherwise be tested without publishing, and an untested publish path is
+// where the "we'll fix it when it breaks" bugs live.
+const GRAPH = process.env.SH_FB_GRAPH_BASE || 'https://graph.facebook.com/v21.0';
 
 const argOf = (flag, dflt) => {
   const i = process.argv.indexOf(flag);
@@ -66,6 +69,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Assembled from the stored card fields (which build.mjs derived from the CPSC record). Kept
 // deliberately flat and factual: this is a safety notice, not marketing. No emoji, no urgency
 // language, no "SHARE THIS!" — the people who share these are the audience, and they can tell.
+// 🪤 MEASURED ON THE FIRST LIVE POST (2026-08-16), not reasoned about: Facebook collapses the
+// message behind "See more" after roughly two lines. The original fourth line — "What was sold,
+// what to do, and the official CPSC notice:" plus the URL — was invisible behind that fold AND
+// its URL was stripped by Facebook anyway (the link becomes the card). So it cost us the fold
+// and bought nothing. TWO LINES ONLY, and the card carries the call to action: it already shows
+// STOPHURTING.ORG, the full recall headline and the CPSC product photo.
+// ⛔ Do not re-add a CTA line. It will not be seen, and it pushes the hazard behind the fold —
+// the hazard is the single most important thing in the post.
 function compose(rec) {
   const url = `${ORIGIN}/recalls/${rec.slug}/`;
   // build.mjs's hazardShort() always ends the phrase with the word "hazard", so under a
@@ -74,7 +85,6 @@ function compose(rec) {
   const hazard = String(rec.hazard || '').trim().replace(/\s+hazards?$/i, '');
   const lines = [`Recalled: ${rec.prod}`];
   if (hazard) lines.push(`Hazard: ${hazard.charAt(0).toUpperCase() + hazard.slice(1)}`);
-  lines.push('', 'What was sold, what to do, and the official CPSC notice:', url);
   return { message: lines.join('\n'), link: url };
 }
 
@@ -164,6 +174,10 @@ async function main() {
     const { message, link } = compose(rec);
     console.log(`── ${rec.date}  ${rec.slug}`);
     console.log(message.split('\n').map((l) => `   │ ${l}`).join('\n'));
+    // The link is NOT in the message (Facebook renders it as the card and strips it from the
+    // text), so a dry run has to show it separately or it looks like we forgot the link.
+    console.log(`   │ [card] ${link}`);
+    console.log(`   │ (message ${message.length} chars — over ~120 risks the "See more" fold)`);
 
     if (!COMMIT) { console.log('   └ (dry)\n'); continue; }              // RAIL 4
 
@@ -175,10 +189,25 @@ async function main() {
       failed++;
       continue;
     }
-    posted[rec.id] = { at: new Date().toISOString(), postId: r.data.id, slug: rec.slug };
+    // ── RAIL 5: the post must actually CARRY the link ───────────────────────
+    // The URL is not in the message — Facebook strips it and renders the card instead. So if a
+    // scrape ever fails, we would publish a recall notice with no way to reach the recall: the
+    // one outcome worse than not posting. Verify the card exists; if it does not, add the URL as
+    // a comment, which cannot fail to scrape because it is plain text.
+    let card = 'rendered';
+    const att = await graph(`/${r.data.id}`, { fields: 'attachments{url,media_type}', access_token: pageToken });
+    if (!att.ok || !(att.data.attachments?.data?.length)) {
+      const c = await graph(`/${r.data.id}/comments`, { message: link, access_token: pageToken }, 'POST');
+      card = c.ok ? 'self-healed-comment' : 'MISSING-LINK';
+      console.log(c.ok
+        ? `   │ ⚠ no link card — posted the URL as a comment (${c.data.id})`
+        : `   │ 🔴 no link card AND the comment failed (${c.error}) — THIS POST HAS NO LINK`);
+    }
+
+    posted[rec.id] = { at: new Date().toISOString(), postId: r.data.id, slug: rec.slug, card };
     fb.posted = posted;
     writeFileSync(FB_STATE_FILE, JSON.stringify(fb, null, 1));           // persist per post, not per batch
-    console.log(`   └ ✅ posted ${r.data.id}\n`);
+    console.log(`   └ ✅ posted ${r.data.id}${card === 'rendered' ? '' : ` (${card})`}\n`);
     published++;
 
     if (i < batch.length - 1 && PAUSE_MS > 0) await sleep(PAUSE_MS);
