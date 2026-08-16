@@ -232,7 +232,13 @@ ${AD_HTML ? `          <div class="rl-ad" aria-label="Advertisement">${AD_HTML}<
 // ---------- hub + homepage + sitemap ----------
 const SEAL = `<svg viewBox="0 0 24 26" aria-hidden="true"><path d="M12 1l10 4v7c0 6.5-4.3 11.3-10 13C6.3 23.3 2 18.5 2 12V5l10-4z" fill="#e07b39"/><path d="M7.5 12.5l3 3 6-6" stroke="#16334f" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const HEADER = `<header class="site-header"><div class="wrap header-inner"><a class="brand" href="/"><span class="brand-mark">${SEAL}</span><span class="brand-name">Stop<span class="brand-accent">Hurting</span></span></a><nav class="nav"><a href="/recalls/">Recalls</a><a href="/myths/">Myth Checks</a><a href="/about/">About</a></nav></div></header>`;
-const FOOTER = `<footer class="site-footer"><div class="wrap">© StopHurting — recall data from the U.S. Consumer Product Safety Commission (public domain). Not legal or medical advice.</div></footer>`;
+// ⭐ The footer links are not decoration: AdSense expects a reachable privacy policy and a way to
+// contact the site owner, and their absence is a standard site-level rejection.
+// ⭐ Not decoration: AdSense expects a reachable privacy policy and a way to contact the owner,
+// and their absence is a standard site-level rejection.
+// 🚧 Contact is added here the moment /contact/ exists — the dead-links check refuses a footer
+// link to a page that is not on disk, which is exactly what it is for.
+const FOOTER = `<footer class="site-footer"><div class="wrap">© StopHurting — recall data from the U.S. Consumer Product Safety Commission (public domain). Not legal or medical advice. &nbsp;·&nbsp; <a href="/privacy/">Privacy</a> &nbsp;·&nbsp; <a href="/about/">About</a></div></footer>`;
 const FAVICON = `<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26'><path d='M12 1l10 4v7c0 6.5-4.3 11.3-10 13C6.3 23.3 2 18.5 2 12V5l10-4z' fill='%23e07b39'/><path d='M7.5 12.5l3 3 6-6' stroke='%2316334f' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />`;
 
 function row(r) {
@@ -293,6 +299,92 @@ ${rows}
 </html>
 `;
 }
+// ---------- privacy ----------
+// ⭐ AdSense's program policies REQUIRE a privacy policy disclosing third-party advertising
+// cookies. The site had none, which is close to an automatic rejection and is the likeliest
+// single reason the 2026-08-16 application was refused.
+// ⛔ EVERY CLAIM BELOW MUST STAY TRUE. Measured on 2026-08-16: no analytics script of any kind
+// anywhere in the site, no accounts, no newsletter, no forms. If any of that changes, this page
+// changes in the SAME commit — a privacy policy that describes a site we no longer run is worse
+// than none, because it is a written promise we are visibly breaking.
+function privacyPage() {
+  const today = new Date().toISOString().slice(0, 10);
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy Policy — StopHurting</title>
+  <meta name="description" content="What StopHurting.org collects, what it does not, and how third-party advertising cookies work on this site." />
+  <link rel="canonical" href="${ORIGIN}/privacy/" />
+  ${FAVICON}
+  <link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  ${HEADER}
+  <main>
+    <article class="article-wrap">
+      <div class="breadcrumb"><a href="/">Home</a> &nbsp;/&nbsp; Privacy</div>
+      <header class="article-header">
+        <h1>Privacy Policy</h1>
+        <p class="dek">Last updated ${today}.</p>
+      </header>
+      <div class="prose">
+        <h2>What we collect</h2>
+        <p>Nothing you type, because there is nothing to type. StopHurting.org has no accounts, no
+        newsletter, no comments and no contact forms. We run no analytics software of any kind, so
+        we do not build a profile of you, and we do not sell or share data about you, because we
+        do not hold any.</p>
+        <p>The search box on the recalls page runs entirely in your browser against a file your
+        browser downloads. What you type into it is never sent to us.</p>
+
+        <h2>Hosting</h2>
+        <p>The site is served by Cloudflare Pages. Like any web host, Cloudflare processes
+        connection information such as your IP address in order to deliver pages and to protect
+        against abuse. That processing is Cloudflare's, governed by their privacy policy, and we
+        do not receive a per-visitor report from it.</p>
+
+        <h2>Advertising</h2>
+        <p>StopHurting.org intends to display advertising through Google AdSense. No advertising
+        code is active on the site while that application is pending; once it is live, the
+        following applies:</p>
+        <ul>
+          <li>Third-party vendors, including Google, use cookies to serve ads based on your prior
+          visits to this and other websites.</li>
+          <li>Google's use of advertising cookies enables it and its partners to serve ads to you
+          based on your visit to this site and/or other sites on the internet.</li>
+          <li>You may opt out of personalised advertising by visiting
+          <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener nofollow">Google Ads Settings</a>.
+          You can opt out of some third-party vendors' use of cookies for personalised advertising
+          at <a href="https://www.aboutads.info/choices/" target="_blank" rel="noopener nofollow">aboutads.info</a>.</li>
+          <li>Visitors in the EEA, UK and Switzerland are shown a consent message where required,
+          and advertising cookies are set according to that choice.</li>
+        </ul>
+
+        <h2>Where the recall information comes from</h2>
+        <p>Every recall page is built from the U.S. Consumer Product Safety Commission's public
+        SaferProducts data, which is a work of the U.S. federal government and in the public
+        domain. We link to the official notice on every page. If anything on this site disagrees
+        with that notice, the notice is correct and we are not.</p>
+
+        <h2>Children</h2>
+        <p>This site is not directed at children under 13 and we do not knowingly collect
+        information from them.</p>
+
+        <h2>Changes</h2>
+        <p>If this policy changes, the date at the top of this page changes with it.</p>
+
+        <h2>Contact</h2>
+        <p>Questions about this policy can be sent through our contact page.</p>
+      </div>
+    </article>
+  </main>
+  ${FOOTER}
+</body>
+</html>
+`;
+}
+
 // ---------- 404 ----------
 // ⭐ MEASURED 2026-08-16: every nonexistent path returned HTTP 200 with the homepage —
 // /ads.txt included, so AdSense fetched HTML where a text file should be. To a crawler that is
@@ -434,6 +526,8 @@ if (WRITE) {
   mkdirSync(path.join(ROOT, 'recalls'), { recursive: true });
   writeFileSync(path.join(ROOT, 'recalls', 'index.html'), hubPage(items));
   writeFileSync(path.join(ROOT, '404.html'), notFoundPage(items));
+  mkdirSync(path.join(ROOT, 'privacy'), { recursive: true });
+  writeFileSync(path.join(ROOT, 'privacy', 'index.html'), privacyPage());
   injectHome(items);
   writeSearchIndex(items);
   sitemap(items);
