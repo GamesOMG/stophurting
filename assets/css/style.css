@@ -21,7 +21,14 @@
   --white:#ffffff;
   --radius:10px;
   --shadow:0 1px 2px rgba(22,51,79,.06), 0 6px 18px rgba(22,51,79,.07);
-  --wrap:1080px;
+  /* ⭐ His call 2026-08-16, looking at it on an ultrawide: "we have more white space on the sides
+     than we even use in the center". True — 1080px of content in a ~2550px window is a third of
+     the screen, with the rail making the grid feel squeezed on top of that.
+     ⛔ Widening the SHELL is safe; widening TEXT is not. Reading measure is capped separately —
+     .article-wrap stays 760px and .rl-body .prose is capped in ch — so long-form never becomes
+     1600px lines. The vw term keeps the gutters proportional on smaller screens instead of
+     pinning a fixed max that only looks right on one monitor. */
+  --wrap:min(94vw,1600px);
   --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
 
@@ -239,7 +246,7 @@ h1,h2,h3{line-height:1.2;margin:0 0 .5em}
    page most people leave once they have read the facts table.
    The rail is not just ad housing: its links are internal linking on a DR-0 site, which is one
    of the few ranking levers available, so it earns whether or not the slot is filled. */
-.recall-shell{max-width:1140px;margin:0 auto;padding:34px 22px 10px}
+.recall-shell{max-width:min(94vw,1500px);margin:0 auto;padding:34px 22px 10px}
 /* 🪤 The rail must START AT THE TOP, level with the facts table. An earlier version gave the ad
    row 1 and the rail row 2, so the rail could not begin until the facts table ended — a dead
    white gap down the whole top-right, and worse with the ad slot empty. The right column is now
@@ -249,7 +256,10 @@ h1,h2,h3{line-height:1.2;margin:0 0 .5em}
 .recall-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;column-gap:34px;align-items:start;
   grid-template-areas:"facts side" "body side"}
 .rl-facts{grid-area:facts;min-width:0}
+/* ⚠ The shell widened; the READING COLUMN must not. A recall notice's prose at 1100px is a line
+   your eye loses its place on. The fact table above it is tabular and happily spans the column. */
 .rl-body{grid-area:body;min-width:0}
+.rl-body .prose{max-width:78ch}
 .rl-side{grid-area:side;min-width:0;position:sticky;top:16px}
 .rl-ad{margin:0 0 1.1rem}
 .rail-card{background:var(--white);border:1px solid var(--light);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;margin:0 0 1.1rem}
@@ -281,10 +291,10 @@ h1,h2,h3{line-height:1.2;margin:0 0 .5em}
 .home-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;column-gap:34px;align-items:start;
   grid-template-areas:"main side"}
 .hl-main{grid-area:main;min-width:0}
-/* ⚠ MEASURED, not guessed: the 300px rail takes the main column to ~700px, and the hub's 232px
-   card minimum then fits only TWO per row — twelve cards became a six-row scroll on a page whose
-   job is to be scannable. A slightly smaller minimum restores three. The hub keeps 232 because it
-   has the full width and larger cards read better there. */
+/* ⚠ A smaller card minimum than the hub's 232px, and it still earns its place after the shell was
+   widened: the rail costs a flat 334px, which barely matters at 1600 but bites hard in the band
+   just above the mobile breakpoint. At a 950px viewport the main column is ~570px — 232 would
+   give ONE card per row there, 196 gives two. The hub keeps 232, having no rail to pay for. */
 .hl-main .r-grid{grid-template-columns:repeat(auto-fill,minmax(196px,1fr))}
 .hl-side{grid-area:side;min-width:0;position:sticky;top:16px}
 .hl-ad{margin:0 0 1.1rem}
