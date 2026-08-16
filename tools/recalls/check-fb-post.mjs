@@ -163,7 +163,7 @@ run('composes-from-cpsc-fields-only', {
   must(out, 'Recalled: Acme Drop-Side Crib', 'product comes from the record');
   must(out, 'Hazard: Entrapment', 'hazard comes from the record, sentence-cased');
   mustNot(out, 'Entrapment hazard', 'the label already says Hazard: — the duplicate word must be dropped');
-  must(out, '[card] https://stophurting.org/recalls/crib-recall-26123/', 'the canonical URL must still be sent as the link');
+  must(out, '[card] https://stophurting.org/us/recalls/crib-recall-26123/', 'the link must be the CANONICAL country-scoped URL, not the redirecting one');
 });
 
 // MEASURED on the first live post: Facebook folds the message behind "See more" after ~2 lines,

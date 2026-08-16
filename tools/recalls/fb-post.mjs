@@ -98,7 +98,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // ⛔ Do not re-add a CTA line. It will not be seen, and it pushes the hazard behind the fold —
 // the hazard is the single most important thing in the post.
 function compose(rec) {
-  const url = `${ORIGIN}/recalls/${rec.slug}/`;
+  // ⚠ Must match build.mjs's recallPath(). The old /recalls/<slug>/ still 301s, but posting a
+  // redirecting URL to Facebook means the card is scraped from the redirect target while the
+  // link people share carries the stale path — and every share compounds it. Post the canonical.
+  const url = `${ORIGIN}/${rec.country || 'us'}/recalls/${rec.slug}/`;
   // build.mjs's hazardShort() always ends the phrase with the word "hazard", so under a
   // "Hazard:" label it reads "Hazard: Fire and Burn hazard". Drop the duplicate — this removes
   // a repeated word, it does not reword CPSC's phrasing.
