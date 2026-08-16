@@ -247,8 +247,15 @@ const HEADER = `<header class="site-header"><div class="wrap header-inner"><a cl
 // our own licensing the moment Australian pages existed. The ACCC's CC BY 4.0 licence REQUIRES
 // attribution; a hard-coded footer is exactly the kind of thing nobody remembers to update, so
 // adding a source to the registry now adds its credit here automatically.
-const CREDITS = COUNTRIES.map((c) => SOURCES[c].footerCredit).join('. ');
-const FOOTER = `<footer class="site-footer"><div class="wrap">© StopHurting — ${CREDITS}. Not legal or medical advice. &nbsp;·&nbsp; <a href="/updates/">Corrections</a> &nbsp;·&nbsp; <a href="/privacy/">Privacy</a> &nbsp;·&nbsp; <a href="/contact/">Contact</a> &nbsp;·&nbsp; <a href="/about/">About</a></div></footer>`;
+// ⭐ The footer NAMES the sources and LINKS the statements. It used to carry a paraphrase of each
+// licence — "UK recall data licensed under the Open Government Licence v3.0" — which is not the
+// wording OGL v3.0 specifies and carried no link to the licence. Both OGL v3.0 and CC BY 4.0
+// allow a single linked resource in place of inline statements when several providers are
+// involved, so /licensing/ holds the exact text for each and this line points at it.
+// ⛔ That link is a LICENCE CONDITION on a page that appears site-wide. Removing it does not
+// degrade the footer; under two of these licences it ends the rights they grant.
+const CREDITS = COUNTRIES.map((c) => SOURCES[c].agencyShort).join(' · ');
+const FOOTER = `<footer class="site-footer"><div class="wrap">© StopHurting — recall data from ${CREDITS}, used under their respective licences: see <a href="/licensing/">licensing &amp; attribution</a>. Not legal or medical advice, and not an official or government source. &nbsp;·&nbsp; <a href="/updates/">Corrections</a> &nbsp;·&nbsp; <a href="/privacy/">Privacy</a> &nbsp;·&nbsp; <a href="/contact/">Contact</a> &nbsp;·&nbsp; <a href="/about/">About</a></div></footer>`;
 const FAVICON = `<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26'><path d='M12 1l10 4v7c0 6.5-4.3 11.3-10 13C6.3 23.3 2 18.5 2 12V5l10-4z' fill='%23e07b39'/><path d='M7.5 12.5l3 3 6-6' stroke='%2316334f' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />`;
 
 // ⭐ THE HUB IS NOW PHOTO-LED. Jason: "the long list on a white background is just bothering me…
@@ -583,6 +590,84 @@ function contactPage() {
 `;
 }
 
+// ---------- licensing & attribution ----------
+// ⭐⭐ THIS PAGE IS A LICENCE CONDITION, NOT A COURTESY. Three of the four sources require
+// attribution, and two of them state that failing to comply ENDS the rights granted:
+//   · OGL v3.0 (UK) and OGL-Canada — "Contains public sector information licensed under …",
+//     plus a link to the licence where possible.
+//   · CC BY 4.0 (ACCC) — "Source: ACCC © Commonwealth of Australia".
+//   · CPSC — a work of the U.S. federal government, public domain, nothing required.
+//
+// The gap this fixes, found by Jason reading the licence text: the statements were on the recall
+// PAGES only. The hubs, the homepage, the 404 and the search index all use the Information too —
+// product names, hazards, dates — and carried none. Both OGL v3.0 and CC BY 4.0 explicitly allow
+// a single linked resource when listing every provider inline is impractical, which is exactly
+// the situation a four-country footer is in. So the footer links here, and here carries the exact
+// wording each provider specifies.
+// ⛔ Built from the source registry. A new country's statement appears the moment it is added,
+// which is the only way this stays true.
+function licensingPage() {
+  const today = new Date().toISOString().slice(0, 10);
+  const blocks = COUNTRIES.map((c) => {
+    const s = SOURCES[c];
+    return `        <h2>${esc(s.country)} — ${esc(s.agency)}</h2>
+        <p>${s.attribution || 'Works of the U.S. federal government are in the public domain: no licence conditions apply and no attribution is required. We credit the source on every page regardless, because a reader deserves to know where a safety notice came from.'}</p>
+        <p class="lic-meta">Recall pages for ${esc(s.countryIn)} are built from the ${esc(s.agency)}'s published notices, and each one links to the original.</p>`;
+  }).join('\n');
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Licensing &amp; Attribution — StopHurting</title>
+  <meta name="description" content="Where StopHurting's recall data comes from, the licence each source is published under, and the attribution each one requires." />
+  <link rel="canonical" href="${ORIGIN}/licensing/" />
+  ${FAVICON}
+  <link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  ${HEADER}
+  <main>
+    <article class="article-wrap">
+      <div class="breadcrumb"><a href="/">Home</a> &nbsp;/&nbsp; Licensing</div>
+      <header class="article-header">
+        <h1>Licensing &amp; attribution</h1>
+        <p class="dek">Every recall on this site comes from an official government source. This page names each one and carries the attribution its licence requires. Last updated ${today}.</p>
+      </header>
+      <div class="prose">
+${blocks}
+
+        <h2>Not an official source, and not endorsed by anyone</h2>
+        <p>StopHurting is an independent site. It is not a government body, it is not affiliated
+        with any of the organisations above, and nothing here should be read as suggesting that
+        any of them endorse this site or its use of their information. Where this site disagrees
+        with an official notice, the official notice is correct and this site is not — every
+        recall page links to the original so you can check.</p>
+
+        <h2>What we do not reproduce</h2>
+        <p>No departmental logo, crest, coat of arms, royal arms or other official symbol appears
+        anywhere on this site. Those are excluded from the licences above, and we have no need of
+        them: the pages carry our own branding precisely so that nobody mistakes this for a
+        government website.</p>
+
+        <h2>Photographs</h2>
+        <p>Where a regulator publishes a product photograph as part of its notice, we mirror it so
+        the picture still loads if their copy moves. The UK's Office for Product Safety and
+        Standards publishes its photographs only inside PDF attachments, so UK pages carry no
+        product photograph at all rather than a picture of a document.</p>
+
+        <h2>Something wrong here?</h2>
+        <p>If you are one of the sources above and this page does not attribute you the way your
+        licence requires, <a href="/contact/">tell us</a> and it will be corrected.</p>
+      </div>
+    </article>
+  </main>
+  ${FOOTER}
+</body>
+</html>
+`;
+}
+
 // ---------- 404 ----------
 // ⭐ MEASURED 2026-08-16: every nonexistent path returned HTTP 200 with the homepage —
 // /ads.txt included, so AdSense fetched HTML where a text file should be. To a crawler that is
@@ -746,7 +831,7 @@ function writeSearchIndex(items) {
 function sitemap(items) {
   // Every hub, not just the one this run built — a sitemap that lists only today's country would
   // drop the other country's hub out of the index on the next run.
-  const staticPages = ['', 'about/', 'privacy/', 'contact/', 'updates/', ...COUNTRIES.map((c) => `${c}/recalls/`),
+  const staticPages = ['', 'about/', 'privacy/', 'contact/', 'updates/', 'licensing/', ...COUNTRIES.map((c) => `${c}/recalls/`),
     ...execSync('git ls-files', { cwd: ROOT }).toString().split('\n')
       .filter((f) => /^[a-z0-9-]+\/index\.html$/.test(f) && !f.startsWith('recalls'))
       .map((f) => f.replace('index.html', ''))];
@@ -908,6 +993,8 @@ if (WRITE) {
   writeFileSync(path.join(ROOT, 'privacy', 'index.html'), privacyPage());
   mkdirSync(path.join(ROOT, 'contact'), { recursive: true });
   writeFileSync(path.join(ROOT, 'contact', 'index.html'), contactPage());
+  mkdirSync(path.join(ROOT, 'licensing'), { recursive: true });
+  writeFileSync(path.join(ROOT, 'licensing', 'index.html'), licensingPage());
   injectHome(items);
   writeSearchIndex(items);
   sitemap(items);

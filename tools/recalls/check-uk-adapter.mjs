@@ -167,6 +167,38 @@ check('credits the Open Government Licence v3.0, which requires attribution', ()
   hasNot(SOURCES.uk.footerCredit, 'public domain', 'UK material is licensed, not public domain');
 });
 
+// ⭐⭐ ATTRIBUTION IS A CONDITION, AND TWO OF THESE LICENCES END IF IT IS NOT MET. Jason read the
+// OGL text and asked whether we actually comply; we did not, fully. The statements were on recall
+// PAGES only, while the hubs, the homepage, the 404 and the search index use the Information too.
+// Both OGL v3.0 and CC BY 4.0 allow one linked resource in place of inline statements when
+// several providers are involved, so /licensing/ carries the exact wording each requires and the
+// site-wide footer links to it.
+// ⛔ These assertions read the BUILT page, so a broken generator or a hand-edit is caught too.
+check('the licensing page carries the exact statement each licence requires', () => {
+  const lic = readFileSync(path.join(HERE, '..', '..', 'licensing', 'index.html'), 'utf8');
+  has(lic, 'Contains public sector information licensed under the', 'the wording OGL v3.0 specifies for the UK');
+  has(lic, 'nationalarchives.gov.uk/doc/open-government-licence/version/3', 'OGL v3.0 asks for a link to the licence where possible');
+  has(lic, 'Contains information licensed under the', 'the wording OGL-Canada specifies');
+  has(lic, 'Source: ACCC © Commonwealth of Australia', 'the wording the ACCC specifies for CC BY 4.0');
+  has(lic, 'creativecommons.org/licenses/by/4.0', '');
+  // Non-endorsement is its own clause in both OGLs, and worth stating rather than merely avoiding.
+  has(lic, 'not a government body', 'both OGLs forbid implying official status or endorsement');
+  has(lic, 'crest', 'logos, crests and the Royal Arms are excluded from the licence — say that we use none');
+  for (const c of ['us', 'au', 'ca', 'uk']) {
+    has(lic, SOURCES[c].agency, `${c}: every source must be named on the licensing page`);
+  }
+});
+
+check('every page links to the attribution, because every page uses the data', () => {
+  const root = path.join(HERE, '..', '..');
+  for (const f of ['index.html', 'uk/recalls/index.html', 'ca/recalls/index.html', '404.html',
+    'uk/recalls/eurowrap-25pk-blue-party-balloons-recall-2608-0108/index.html']) {
+    const html = readFileSync(path.join(root, f), 'utf8');
+    has(html, 'href="/licensing/"', `${f} uses licensed Information and must reach the attribution from it`);
+    hasNot(html, 'UK recall data licensed under', `${f} still carries the old paraphrase, which is not the specified statement and had no link`);
+  }
+});
+
 // ── the parser, against a document it should refuse to guess at ────────────────────────────
 check('omits rows the notice does not carry instead of inventing them', () => {
   const bare = ukToCanonical(
