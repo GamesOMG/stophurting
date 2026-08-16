@@ -311,8 +311,10 @@ h1,h2,h3{line-height:1.2;margin:0 0 .5em}
   .rail-countries{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
   .rail-countries li{flex:0 0 auto}
   .rail-countries li+li{border-top:0}
-  .rail-countries a{display:flex;align-items:center;gap:.4rem;padding:.45rem .75rem;border:1px solid var(--light);
-    border-radius:999px;white-space:nowrap}
+  /* ⚠ 44px minimum, measured not eyeballed: the first version came out 36px tall, under the
+     touch-target floor on the mobile-first surface this site is aimed at. */
+  .rail-countries a{display:flex;align-items:center;gap:.4rem;padding:.72rem .95rem;min-height:44px;
+    box-sizing:border-box;border:1px solid var(--light);border-radius:999px;white-space:nowrap}
   .rail-countries .rail-date{display:none}
   .rail-countries .rail-prod{font-size:.9rem;margin:0}
   .rail-cc{grid-row:auto}
