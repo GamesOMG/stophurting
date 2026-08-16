@@ -69,8 +69,14 @@ function soldAt(rec) {
   const r = (rec.Retailers || []).map((x) => x.Name).filter(Boolean).join(' · ');
   return r || rec.SoldAtLabel || '';
 }
+// 🪤 CPSC's NumberOfUnits usually ALREADY reads "About 213,500". Every caller here adds its own
+// "About"/"about", which shipped "About About 213,500 units" onto 121 of 134 pages — invisible to
+// every check we have, and caught only by reading a rendered page. Strip their qualifier so the
+// callers can own the wording.
 function unitCount(rec) {
-  return (rec.Products || []).map((p) => p.NumberOfUnits).filter(Boolean).join(' + ') || '';
+  return (rec.Products || []).map((p) => p.NumberOfUnits).filter(Boolean)
+    .map((u) => String(u).replace(/^\s*(about|approx\.?|approximately)\s+/i, '').trim())
+    .filter(Boolean).join(' + ') || '';
 }
 function remedyText(rec) {
   const kinds = (rec.Remedies || []).map((r) => r.Name).filter(Boolean).join(' / ');
@@ -203,14 +209,16 @@ ${rows.map(([k, v]) => `              <tr><th>${esc(k)}</th><td>${esc(v)}</td></
             </tbody>
           </table>
         </div>
-${AD_HTML ? `        <aside class="rl-ad" aria-label="Advertisement">${AD_HTML}</aside>\n` : ''}        <div class="rl-body">
+        <div class="rl-body">
 ${img ? `          <figure class="recall-img"><img src="${esc(img.rel)}" alt="${esc(img.caption || prod + ' — recalled product')}" loading="lazy" />${img.caption ? `<figcaption>${esc(img.caption)}</figcaption>` : ''}</figure>\n` : ''}          <div class="prose">
             <h2>What was recalled</h2>
             <p>${esc(rec.Description)}</p>
 ${remedy ? `            <h2>What to do</h2>\n            <p>Stop using the product. The listed remedy is: <strong>${esc(remedy)}</strong>. ${esc(rec.ConsumerContact || '')}</p>\n` : ''}            <p class="recall-source">Source: <a href="${esc(rec.URL)}" target="_blank" rel="noopener">the official CPSC recall notice</a>, published ${esc(date)}. Every fact on this page comes from that notice — if anything here disagrees with it, the notice wins.</p>
           </div>
         </div>
-        <aside class="rl-rail">${railLinks(items || [], slug, hazardShort(rec))}
+        <aside class="rl-side">
+${AD_HTML ? `          <div class="rl-ad" aria-label="Advertisement">${AD_HTML}</div>\n` : ''}          <div class="rl-rail">${railLinks(items || [], slug, hazardShort(rec))}
+          </div>
         </aside>
       </div>
     </article>

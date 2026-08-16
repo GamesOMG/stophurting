@@ -179,12 +179,18 @@ h1,h2,h3{line-height:1.2;margin:0 0 .5em}
    The rail is not just ad housing: its links are internal linking on a DR-0 site, which is one
    of the few ranking levers available, so it earns whether or not the slot is filled. */
 .recall-shell{max-width:1140px;margin:0 auto;padding:34px 22px 10px}
+/* 🪤 The rail must START AT THE TOP, level with the facts table. An earlier version gave the ad
+   row 1 and the rail row 2, so the rail could not begin until the facts table ended — a dead
+   white gap down the whole top-right, and worse with the ad slot empty. The right column is now
+   ONE stack (.rl-side) spanning both rows. On mobile .rl-side becomes display:contents so its
+   children rejoin the parent grid and the SAME ad element lands between facts and body — one
+   unit, relocated, never duplicated. */
 .recall-layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;column-gap:34px;align-items:start;
-  grid-template-areas:"facts ad" "body rail"}
+  grid-template-areas:"facts side" "body side"}
 .rl-facts{grid-area:facts;min-width:0}
-.rl-ad{grid-area:ad;min-width:0;margin:0 0 1.4rem}
 .rl-body{grid-area:body;min-width:0}
-.rl-rail{grid-area:rail;min-width:0;position:sticky;top:16px}
+.rl-side{grid-area:side;min-width:0;position:sticky;top:16px}
+.rl-ad{margin:0 0 1.1rem}
 .rail-card{background:var(--white);border:1px solid var(--light);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;margin:0 0 1.1rem}
 .rail-title{font-size:.82rem;letter-spacing:.06em;text-transform:uppercase;color:var(--gray);font-weight:800;margin:0 0 .6rem}
 .rail-list{list-style:none;margin:0;padding:0}
@@ -194,9 +200,13 @@ h1,h2,h3{line-height:1.2;margin:0 0 .5em}
 .rail-prod{display:block;font-size:.93rem;font-weight:600}
 .rail-date{display:block;font-size:.8rem;color:var(--gray);margin-top:.15rem}
 @media(max-width:900px){
-  /* Single column, and the ad moves to just after the facts table. Same element, same unit. */
+  /* Single column. .rl-side dissolves so its children rejoin the parent grid, letting the SAME
+     ad element land between the facts table and the body — the natural pause once the reader
+     has their answer, and nowhere near the bottom nobody scrolls to. */
   .recall-layout{grid-template-columns:1fr;grid-template-areas:"facts" "ad" "body" "rail"}
-  .rl-rail{position:static;margin-top:1.6rem}
+  .rl-side{display:contents}
+  .rl-ad{grid-area:ad;margin:0 0 1.4rem}
+  .rl-rail{grid-area:rail;margin-top:1.6rem}
   .recall-shell{padding-top:24px}
 }
 
