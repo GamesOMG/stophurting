@@ -27,11 +27,11 @@
 
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{background:var(--ground);
+body{
   margin:0;
   font-family:var(--font);
   color:var(--ink);
-  background:var(--paper);
+  background:var(--ground);
   line-height:1.65;
   -webkit-font-smoothing:antialiased;
 }

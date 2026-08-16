@@ -66,8 +66,12 @@ for (const abs of files) {
     if (!u) continue;
     u = u.split('#')[0].split('?')[0];
     if (!u || /^(data:|mailto:|tel:|javascript:)/i.test(u)) continue;
-    // a ref built at runtime from a template string is not a static ref
-    if (u.includes("'+") || u.includes('${') || u.includes('"+')) continue;
+    // A ref built at runtime from a template string is not a static ref.
+    // 🪤 This used to test for "'+" with no space and missed "' + r.slug + '", which the hub's
+    // search results emit — so the gate blocked a good commit with a ref that does not exist as
+    // written. A QUOTE CHARACTER is the reliable signal: a real static href or src can never
+    // contain one, because it would have closed the attribute.
+    if (/['"`]|\$\{/.test(u)) continue;
     if (/^\/\//.test(u) || /^https?:\/\//i.test(u)) {
       const host = u.replace(/^(?:https?:)?\/\//i, '').split('/')[0].replace(/^www\./i, '');
       if (!ORIGINS.includes(host)) continue;              // someone else's host

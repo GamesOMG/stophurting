@@ -298,8 +298,7 @@ function hubPage(items) {
       <p class="section-sub">Straight from the official CPSC notices — what was recalled, why it's dangerous, and what to do about it. Newest first, updated automatically. ${items.length} tracked since June 2026.</p>
       <div class="search-box" style="margin:0 0 1.2rem"><input id="q" type="search" placeholder="Search a brand, product, or model number…" autocomplete="off" style="border:1px solid var(--light)" /></div>
       <div class="r-grid" id="hub-list">
-${items.map(card).join('
-')}
+${items.map(card).join('\n')}
       </div>
     </section>
   </main>
