@@ -67,10 +67,22 @@ h1,h2,h3{line-height:1.2;margin:0 0 .5em}
 .nav a:hover{color:#fff}
 
 /* ── Hero band — search-first, no photo ── */
-.hero-band{background:linear-gradient(160deg,var(--navy) 0%,var(--navy-deep) 100%);color:#fff;padding:52px 0 46px}
+/* ⚠ THE HERO IS CENTRED, and that is a consequence of widening the shell rather than a taste
+   change. Its text is capped for readability — the sub at 60ch, the search box at 620px — so once
+   --wrap went from 1080px to min(94vw,1600px) those capped blocks stayed pinned to the left edge
+   of a much wider band, leaving ~900px of dead space beside them on an ultrawide. Jason saw it
+   immediately: "the hero section on the top is on the left side of the page".
+   ⛔ The fix is NOT to uncap the text. A 1600px line of prose is unreadable, which is the whole
+   reason for the cap; the block just has to be centred within the band it now sits in.
+   Centred also suits what this hero IS: a search box. Putting it mid-screen is where the eye
+   lands, rather than off in one corner.
+   ⚠ Homepage only — .hero-band appears in index.html and nowhere else. Hubs and recall pages are
+   left-aligned list/article layouts and must stay that way. */
+.hero-band{background:linear-gradient(160deg,var(--navy) 0%,var(--navy-deep) 100%);color:#fff;padding:52px 0 46px;text-align:center}
 .hero-band h1{font-size:clamp(1.8rem,4vw,2.7rem);font-weight:800;color:#fff;margin:0 0 .35rem}
-.hero-band .hero-sub{color:#b9c7d6;font-size:clamp(1rem,1.5vw,1.15rem);margin:0 0 1.5rem;max-width:60ch}
+.hero-band .hero-sub{color:#b9c7d6;font-size:clamp(1rem,1.5vw,1.15rem);margin:0 auto 1.5rem;max-width:60ch}
 .search-box{display:flex;gap:10px;max-width:620px}
+.hero-band .search-box{margin-inline:auto}
 .search-box input{
   flex:1;min-width:0;font:inherit;font-size:1.05rem;color:var(--ink);
   padding:.85rem 1.1rem;border:0;border-radius:var(--radius);outline:3px solid transparent;
