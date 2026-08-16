@@ -15,7 +15,7 @@
 // file's anchors are exact source strings from sources.mjs — the day someone reformats a line,
 // this fails while the code is perfectly correct. It is a tool you run by hand when you touch the
 // adapter, not a gate:
-//     node tools/recalls/mutations-au.mjs
+//     node tools/recalls/mutations.mjs
 
 import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -82,6 +82,79 @@ const MUTATIONS = [
     expect: 'omits a units row entirely rather than inventing one',
     why: 'a fabricated unit count on a safety page is the exact failure this repo keeps paying for',
   },
+  // ── Canada ────────────────────────────────────────────────────────────────────────────────
+  {
+    name: 'CA photo read from src instead of data-src',
+    file: 'sources.mjs',
+    suite: 'check-ca-adapter.mjs',
+    find: "const raw = (tag.match(/\\sdata-src=\"([^\"]+)\"/i) || tag.match(/\\ssrc=\"([^\"]+)\"/i) || [])[1] || '';",
+    replace: "const raw = (tag.match(/\\ssrc=\"([^\"]+)\"/i) || [])[1] || '';",
+    expect: 'takes the photo from data-src',
+    why: 'Canada lazy-loads: src is an inline SVG spacer, so this fills a photo-led hub with blank cards while every "has an image" check still passes',
+  },
+  {
+    name: 'CA vehicle lane let through',
+    file: 'sources.mjs',
+    suite: 'check-ca-adapter.mjs',
+    find: "  CFIA: { lane: 'FOOD', requireAction: true, issuer: 'Canadian Food Inspection Agency' },",
+    replace: "  CFIA: { lane: 'FOOD', requireAction: true, issuer: 'Canadian Food Inspection Agency' },\n  TC: { lane: 'VEHICLE', requireAction: false, issuer: 'Transport Canada' },",
+    expect: 'excludes Transport Canada vehicle recalls',
+    why: '166 recalls with no action field and near-identical titles — scaled thin content on a site already refused once',
+  },
+  {
+    name: 'CA health lane let through',
+    file: 'sources.mjs',
+    suite: 'check-ca-adapter.mjs',
+    find: "  CFIA: { lane: 'FOOD', requireAction: true, issuer: 'Canadian Food Inspection Agency' },",
+    replace: "  CFIA: { lane: 'FOOD', requireAction: true, issuer: 'Canadian Food Inspection Agency' },\n  'Medical devices': { lane: 'HEALTH', requireAction: false, issuer: 'Medical devices' },",
+    expect: 'excludes drugs, medical devices and natural health products',
+    why: 'YMYL content this site deliberately avoids, added while AdSense is mid-recrawl after a refusal',
+  },
+  {
+    name: 'CA food action requirement dropped',
+    file: 'sources.mjs',
+    suite: 'check-ca-adapter.mjs',
+    find: "  CFIA: { lane: 'FOOD', requireAction: true, issuer: 'Canadian Food Inspection Agency' },",
+    replace: "  CFIA: { lane: 'FOOD', requireAction: false, issuer: 'Canadian Food Inspection Agency' },",
+    expect: 'drops food recalls that cannot say what to do',
+    why: 'ships food recalls that cannot tell a reader what to do — half a page on an answer-first site',
+  },
+  {
+    name: 'CA archived notices published',
+    file: 'sources.mjs',
+    suite: 'check-ca-adapter.mjs',
+    find: "    if (r[A] === '1') continue;                // archived: closed, not current",
+    replace: '',
+    expect: 'drops archived notices',
+    why: 'republishes closed notices as current recalls',
+  },
+  {
+    name: 'CA withdrawal detection switched on for a self-filtered feed',
+    file: 'sources.mjs',
+    suite: 'check-ca-adapter.mjs',
+    find: '    completeWindow: false,\n    revisionKey: \'modified\',\n    hubTitle: \'Canadian Product Recalls — StopHurting\',',
+    replace: '    completeWindow: true,\n    revisionKey: \'modified\',\n    hubTitle: \'Canadian Product Recalls — StopHurting\',',
+    expect: 'declares its window incomplete',
+    why: 'every Canadian recall would be published as withdrawn the day it aged past 90 days',
+  },
+  {
+    name: 'CA CSV header check removed',
+    file: 'sources.mjs',
+    suite: 'check-ca-adapter.mjs',
+    find: '  if ([T, U, O, P, I, W, C, D, A].some((i) => i < 0)) {',
+    replace: '  if (false) {',
+    expect: 'aborts when the CSV header changes',
+    why: 'a renamed column would publish ~96 pages with every field blank and no error anywhere',
+  },
+  {
+    name: 'CA credited as public domain',
+    file: 'sources.mjs',
+    suite: 'check-ca-adapter.mjs',
+    find: "    footerCredit: 'Canadian recall data licensed under the Open Government Licence – Canada',",
+    replace: "    footerCredit: 'Canadian recall data (public domain)',",
+    expect: 'credits the Open Government Licence',
+    why: 'OGL attribution is a licence condition; dropping it ends the rights granted under it',
+  },
   {
     name: 'sanitiser allows every tag through',
     file: 'sources.mjs',
@@ -113,7 +186,7 @@ for (const m of MUTATIONS) {
     let out = '';
     let exitCode = 0;
     try {
-      out = execFileSync(process.execPath, [path.join(dir, 'check-au-adapter.mjs')], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+      out = execFileSync(process.execPath, [path.join(dir, m.suite || 'check-au-adapter.mjs')], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
     } catch (e) {
       out = `${e.stdout || ''}${e.stderr || ''}`;
       exitCode = e.status ?? 1;

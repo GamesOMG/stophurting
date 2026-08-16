@@ -76,7 +76,7 @@ function elementAt(html, idx) {
   return '';
 }
 function fieldRaw(html, name) {
-  const idx = html.indexOf(`field--name-field-psa-${name}`);
+  const idx = html.indexOf(`field--name-${name}`);
   return idx < 0 ? '' : elementAt(html, idx);
 }
 // The label is chrome — we write our own labels — so it never reaches a page.
@@ -247,28 +247,28 @@ function auImageFromItem(item) {
 export function auToCanonical(item, pageHtml) {
   const page = pageHtml || '';
   const prod = item.title;
-  const hazardFull = fieldText(page, 'recall-hazards') || stripTags(sectionFromDescription(item.description, 'recall-hazards'));
+  const hazardFull = fieldText(page, 'field-psa-recall-hazards') || stripTags(sectionFromDescription(item.description, 'field-psa-recall-hazards'));
   const hazard = auHazardShort(hazardFull);
   const date = isoDay(new Date(item.pubDate).toISOString());
-  const brand = fieldText(page, 'recall-brand');
-  const supplier = fieldText(page, 'recall-supplier-name');
-  const traders = fieldText(page, 'recall-traders');
-  const saleDates = fieldText(page, 'recall-sale-dates');
-  const where = fieldText(page, 'recall-location-sold');
-  const madeIn = fieldText(page, 'recall-country-id');
-  const ident = fieldHtml(page, 'recall-ident-features', AU_BASE);
-  const desc = fieldHtml(page, 'recall-product-desc', AU_BASE)
-    || sanitize(sectionFromDescription(item.description, 'recall-product-desc'), AU_BASE);
-  const defects = fieldHtml(page, 'recall-product-defects', AU_BASE)
-    || sanitize(sectionFromDescription(item.description, 'recall-product-defects'), AU_BASE);
+  const brand = fieldText(page, 'field-psa-recall-brand');
+  const supplier = fieldText(page, 'field-psa-recall-supplier-name');
+  const traders = fieldText(page, 'field-psa-recall-traders');
+  const saleDates = fieldText(page, 'field-psa-recall-sale-dates');
+  const where = fieldText(page, 'field-psa-recall-location-sold');
+  const madeIn = fieldText(page, 'field-psa-recall-country-id');
+  const ident = fieldHtml(page, 'field-psa-recall-ident-features', AU_BASE);
+  const desc = fieldHtml(page, 'field-psa-recall-product-desc', AU_BASE)
+    || sanitize(sectionFromDescription(item.description, 'field-psa-recall-product-desc'), AU_BASE);
+  const defects = fieldHtml(page, 'field-psa-recall-product-defects', AU_BASE)
+    || sanitize(sectionFromDescription(item.description, 'field-psa-recall-product-defects'), AU_BASE);
   // Their "what consumers should do" block ends with a Contact heading and the supplier's phone
   // or email. Splitting on that heading is exact — it is their own markup, not a guess at where
   // the prose changes subject.
   // 🪤 SPLIT BEFORE SANITISING. <h3> is not on the sanitiser's allowlist, so sanitising first
   // deletes the very heading the split keys on — the Contact row then silently vanished from
   // every page while the parse still looked successful. Structure first, then strip.
-  const actionRaw = fieldInner(page, 'recall-consumer-action')
-    || sectionFromDescription(item.description, 'recall-consumer-action');
+  const actionRaw = fieldInner(page, 'field-psa-recall-consumer-action')
+    || sectionFromDescription(item.description, 'field-psa-recall-consumer-action');
   const [actionPart, contactPart] = splitOnContact(actionRaw);
   const action = sanitize(actionPart, AU_BASE);
   const contact = stripTags(contactPart);
@@ -333,8 +333,202 @@ function splitOnContact(html) {
 // The RSS description carries the same Drupal blocks as the page, so it is a real fallback if a
 // notice page ever fails to fetch — not a second parser, the same extraction over the same markup.
 function sectionFromDescription(description, name) {
-  const idx = description.indexOf(`field--name-field-psa-${name}`);
+  const idx = description.indexOf(`field--name-${name}`);
   return idx < 0 ? '' : dropLabel(elementAt(description, idx));
+}
+
+// ---------- source: Canada ----------
+// A THIRD FEED SHAPE, and the reason the adapter split earns its keep. The US is a JSON API with
+// a date window; Australia is an RSS feed plus a notice page; Canada is a nightly bulk CSV of the
+// ENTIRE archive (33,944 rows, 1991 → yesterday) plus a notice page.
+//
+// ⛔⛔ THE OBVIOUS ENDPOINT IS DEAD AND RETURNS 200. `healthycanadians.gc.ca/recall-alert-rappel-
+// avis/api/recent/en` serves well-formed JSON, neatly split into FOOD/VEHICLE/HEALTH/CPS, 15 each
+// — frozen at 2021-10-29, and its VEHICLE lane has not moved since 2017. Nothing about the
+// response says so. Trusting the status code would have launched Canada with five-year-old
+// recalls presented as the latest. The bulk CSV is the only current source. Verified 2026-08-16.
+const CA_BASE = 'https://recalls-rappels.canada.ca';
+const CA_CSV = `${CA_BASE}/sites/default/files/opendata-donneesouvertes/HCRSAMOpenData.csv`;
+
+// RFC4180: quoted fields containing commas, newlines and doubled quotes. The Canadian file uses
+// all three, so a split(',') parser silently shreds rows rather than failing — which is worse.
+export function parseCsv(txt) {
+  const rows = [];
+  let field = '', row = [], quoted = false;
+  for (let i = 0; i < txt.length; i++) {
+    const c = txt[i];
+    if (quoted) {
+      if (c === '"') { if (txt[i + 1] === '"') { field += '"'; i++; } else quoted = false; }
+      else field += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else if (c !== '\r') field += c;
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+// ⭐⭐ WHICH LANES SHIP, AND WHY — measured 2026-08-16 over the last 90 days, not archived:
+//
+//   lane      recalls   records with every field
+//   VEHICLE      166        0
+//   HEALTH       141       36
+//   CPS           68       68     ← ships
+//   FOOD          52       28     ← ships, filtered to the 28
+//
+// · CPS is the direct CPSC/ACCC equivalent and is 100% complete. It is the spine.
+// · FOOD ships ONLY where the notice carries a "what you should do". A recall page that cannot
+//   tell you what to do is half a page on a site whose entire promise is answer-first.
+// · ⛔ VEHICLE is excluded on DATA QUALITY, not taste: every one of the 166 lacks the action
+//   field, and the titles are literally "Transport Canada Recall - 2022550 - VOLVO". That is a
+//   generator for 166 near-identical stubs — scaled thin content, which is the refusal class this
+//   site has already been hit with once. Recoverable later by fetching each notice page.
+// · ⛔ HEALTH (drugs, medical devices, natural health products) is excluded because this site
+//   deliberately does not lean health — YMYL, where an unknown domain does not rank — and because
+//   AdSense is mid-recrawl after a refusal. Both reasons are strategy, not squeamishness.
+// ⭐ `issuer` IS DECLARED PER LANE, not derived with a ternary — and that is not tidiness either.
+// It was `org === 'CFIA' ? CFIA : 'Health Canada — Consumer Product Safety'`, which labels
+// ANY lane that is not food as Health Canada consumer products. Mutation testing caught it: adding
+// a Transport Canada lane published 166 vehicle recalls that all *claimed to be issued by Health
+// Canada*, and both exclusion tests stayed green because every record looked like a CPS record.
+// A ternary over an open set is a mislabelling waiting for its second case. Adding a lane now
+// forces naming its issuer.
+const CA_LANES = {
+  'Consumer product safety': { lane: 'CPS', requireAction: false, issuer: 'Health Canada — Consumer Product Safety' },
+  CFIA: { lane: 'FOOD', requireAction: true, issuer: 'Canadian Food Inspection Agency' },
+};
+// ⛔ A WINDOW, NOT A PER-LANE COUNT. A fixed "newest N per category" silently drops real recalls
+// the week a batch lands — the same no-silent-caps rule the promote script follows — and it needs
+// re-tuning by hand as the site grows. 90 days keeps the site current by construction.
+const CA_WINDOW_DAYS = 90;
+
+export function caPickRows(csv, todayIso) {
+  const rows = parseCsv(csv);
+  const head = rows[0] || [];
+  const at = (name) => head.indexOf(name);
+  const [T, U, O, P, I, W, C, K, D, A] = ['Title', 'URL', 'Organization', 'Product', 'Issue',
+    'What you should do', 'Category', 'Recall class', 'Last updated', 'Archived'].map(at);
+  if ([T, U, O, P, I, W, C, D, A].some((i) => i < 0)) {
+    throw new Error(`Canadian CSV header changed — got ${JSON.stringify(head)}`);
+  }
+  const cutoff = new Date(new Date(todayIso + 'T12:00:00Z').getTime() - CA_WINDOW_DAYS * 864e5)
+    .toISOString().slice(0, 10);
+  const out = [];
+  for (const r of rows.slice(1)) {
+    if (r.length < head.length - 1) continue;
+    const conf = CA_LANES[r[O]];
+    if (!conf) continue;                       // excluded lane
+    if (r[A] === '1') continue;                // archived: closed, not current
+    if (!r[D] || r[D] < cutoff) continue;      // outside the window
+    const action = stripTags(r[W] || '');
+    if (conf.requireAction && !action) continue;
+    if (!r[P] || !r[U]) continue;              // no product or no source link: not publishable
+    out.push({
+      nid: r[0], title: r[T], url: r[U], org: r[O], product: r[P],
+      issue: stripTags(r[I] || ''), action, category: r[C], recallClass: r[K] || '',
+      date: r[D], lane: conf.lane, issuer: conf.issuer,
+    });
+  }
+  return out;
+}
+
+// The notice page carries LONG-form versions of the summary fields plus the product photographs,
+// neither of which is in the CSV — the same two-stage shape as Australia, for the same reason.
+// ⭐⭐ THE `Issue` COLUMN IS NOT RELIABLY A HAZARD, and reading one rendered page is what showed
+// it: the Cosyland step stool — a tip-over and entrapment recall — carries Issue "Consumer
+// products", so the page read "The hazard: Consumer products" and the dek was the sentence
+// "Consumer products." Measured across the 96 selected rows, 14 have an Issue that is an allergen
+// name or a category label rather than a hazard.
+// The TITLE carries the notice's own words in 92 of the 96: "<product> recalled due to <hazard>".
+// So the title clause wins, and Issue is the fallback — the 3 rows with no clause are Health
+// Canada warnings whose Issue is a clean "Chemical hazard" / "Choking hazard".
+// ⚠ The zero-width space is not decoration: at least one real Canadian title contains U+200B
+// immediately before "due to", so a plain / recalled due to / never matches it.
+export function caHazard(row) {
+  const m = String(row.title || '').match(/recalled[\s​]*due to[\s​]*(.+)$/i);
+  const fromTitle = m ? m[1].replace(/[\s​]+/g, ' ').replace(/[.\s]+$/, '').trim() : '';
+  return clamp(fromTitle || row.issue || 'safety hazard', 90);
+}
+export function caToCanonical(row, pageHtml) {
+  const page = pageHtml || '';
+  const prod = row.product.trim();
+  const hazard = caHazard(row);
+  const affected = fieldHtml(page, 'field-affected-products', CA_BASE);
+  const issueLong = fieldHtml(page, 'field-issue-long', CA_BASE);
+  const actionLong = fieldHtml(page, 'field-action-long', CA_BASE);
+  const background = fieldHtml(page, 'field-background', CA_BASE);
+  const forWhom = fieldText(page, 'field-who-this-is-for');
+  const brand = fieldText(page, 'field-brand-ref');
+  const company = fieldText(page, 'field-companies');
+  const esc1 = (s) => `<p>${escText(s)}</p>`;
+
+  return {
+    id: `ca-${row.nid}`,
+    country: 'ca',
+    slug: `${slugify(deaccent(prod))}-recall-${row.nid}`,
+    num: row.nid,
+    date: row.date,
+    modified: row.date,
+    prod,
+    hazard,
+    units: '',
+    url: row.url.startsWith('http') ? row.url : CA_BASE + row.url,
+    contact: '',
+    models: [prod, stripTags(affected)].join(' ').slice(0, 400),
+    image: caImage(page),
+    rows: [
+      ['What', prod],
+      brand && ['Brand', brand],
+      ['The hazard', hazard],
+      row.category && ['Category', row.category],
+      forWhom && ['Who it affects', forWhom],
+      company && ['Recalled by', company],
+      row.recallClass && ['Recall class', row.recallClass],
+      ['Issued by', row.issuer],
+      ['Recall date', row.date],
+    ].filter(Boolean),
+    sections: [
+      { h2: 'What was recalled', html: affected || esc1(prod) },
+      (issueLong || row.issue) && { h2: 'Why it was recalled', html: issueLong || esc1(row.issue) },
+      (actionLong || row.action) && { h2: 'What to do', html: actionLong || esc1(row.action) },
+      background && { h2: 'Background', html: background },
+    ].filter(Boolean),
+    dek: clamp(hazard.charAt(0).toUpperCase() + hazard.slice(1), 160) + '.',
+    desc: fits(158, [
+      `${prod} recalled in Canada: ${hazard}. What was sold, who it affects, and what to do — from the official notice.`,
+      `${prod} recalled in Canada: ${hazard}. What to do, from the official notice.`,
+      `${prod} recalled in Canada: ${hazard}.`,
+      `${clamp(prod, 80)} recalled in Canada. The hazard, who it affects, and what to do.`,
+    ]),
+  };
+}
+// 🪤🪤 TWO SEPARATE TRAPS ON ONE TAG, and the first is the dangerous one.
+//
+// 1. THE PHOTO IS IN `data-src`. Canada lazy-loads images, so `src` holds an inline SVG spacer:
+//        <img data-src="/sites/default/files/styles/x_large/public/alert/recall/82165/Image1.jpg?itok=…"
+//             src="data:image/svg+xml,…viewBox='0 0 172 220'…" alt="Front of product">
+//    Reading `src` — the obvious attribute, and the one that works on every other site — mirrors
+//    a BLANK PLACEHOLDER. It would not have errored: it would have quietly filled the photo grid
+//    with empty rectangles that still passed "every record has an image".
+// 2. Then the same `itok` derivative trap Australia had, arrived at independently. The unsigned
+//    original sits at the same path with /styles/<preset>/public/ removed, and is larger
+//    (11 KB vs 6.8 KB on the row measured 2026-08-16).
+//
+// ⛔ The data: guard is not belt-and-braces — a data: URI is exactly what this returns if the
+// lazy-load attribute is ever renamed, and mirroring one produces a page that looks fine to every
+// check and blank to every reader.
+function caImage(page) {
+  for (const m of page.matchAll(/<img[^>]*>/gi)) {
+    const tag = m[0];
+    const raw = (tag.match(/\sdata-src="([^"]+)"/i) || tag.match(/\ssrc="([^"]+)"/i) || [])[1] || '';
+    if (!raw || raw.startsWith('data:')) continue;
+    if (!/\/alert\/recall\//.test(raw)) continue;          // skip site chrome and wordmarks
+    const alt = (tag.match(/\salt="([^"]*)"/i) || [])[1] || '';
+    const clean = raw.split('?')[0].replace(/\/styles\/[^/]+\/public\//, '/');
+    return { src: clean.startsWith('http') ? clean : CA_BASE + clean, caption: decodeEntities(alt) };
+  }
+  return null;
 }
 
 // ---------- the registry ----------
@@ -426,12 +620,84 @@ export const SOURCES = {
       return out;
     },
   },
+
+  ca: {
+    cc: 'ca',
+    country: 'Canada',
+    countryIn: 'Canada',
+    agency: 'Health Canada and the Canadian Food Inspection Agency',
+    agencyShort: 'Health Canada',
+    noticeName: 'Canadian recall notice',
+    hubCrumb: 'Canadian recalls',
+    // ⚠ Open Government Licence – Canada. Its attribution clause is explicit: use the provider's
+    // statement, or this exact sentence. It also forbids using federal logos or official symbols
+    // and forbids implying endorsement — which is why no departmental crest appears on our pages
+    // and why nothing here says "official Government of Canada".
+    attribution: 'Contains information licensed under the '
+      + '<a href="https://open.canada.ca/en/open-government-licence-canada" target="_blank" rel="noopener nofollow">Open Government Licence – Canada</a>.',
+    footerCredit: 'Canadian recall data licensed under the Open Government Licence – Canada',
+    // ⛔ FALSE, and for a different reason than Australia's. The Canadian CSV IS the complete
+    // archive — but this adapter deliberately returns only two lanes inside a 90-day window, so
+    // "absent from what the adapter returned" describes our own filter, not a withdrawal. Turning
+    // this on would report every recall that ages past 90 days as withdrawn.
+    // ⚠ The file's `Archived` column is the honest future hook for status changes — but archived
+    // on canada.ca means closed/old, NOT withdrawn, so it must not be published as one.
+    completeWindow: false,
+    revisionKey: 'modified',
+    hubTitle: 'Canadian Product Recalls — StopHurting',
+    hubHeading: 'Canadian product recalls',
+    hubDesc: (n) => `Canadian consumer product and food recalls — what was recalled, the hazard, and what to do, from Health Canada's and the CFIA's official notices. ${n} tracked.`,
+    hubIntro: (n) => `From the official Health Canada and Canadian Food Inspection Agency notices — what was recalled, why it's dangerous, and what to do about it. ${n} tracked, covering consumer products and food.`,
+    async fetch({ known = new Map(), fixtures = null, rebuild = false, today = new Date().toISOString().slice(0, 10) } = {}) {
+      // The whole archive every run: 10 MB, and the only current source Canada publishes. Parsing
+      // 33,944 rows to keep ~100 is the cost of the endpoint that actually works.
+      const csv = fixtures ? loadFixture(fixtures, 'ca-recalls.csv') : await fetchText(CA_CSV);
+      const picked = caPickRows(csv, today);
+      const out = [];
+      for (const row of picked) {
+        const id = `ca-${row.nid}`;
+        const prev = known.get(id);
+        // The CSV's own "Last updated" is the revision marker, so an unchanged row costs no
+        // notice-page fetch. ~100 fetches on the first run, a handful thereafter.
+        if (!rebuild && prev && prev.modified === row.date) { out.push({ ...prev, unchanged: true }); continue; }
+        const pageHtml = fixtures
+          ? loadFixture(fixtures, `ca-page-${row.nid}.html`, true)
+          : await fetchText(row.url).catch(() => '');
+        out.push(caToCanonical(row, pageHtml));
+      }
+      return out;
+    },
+  },
 };
 
-async function fetchText(url) {
-  const res = await fetch(url, { headers: { 'user-agent': 'stophurting-recalls/1.0 (+https://stophurting.org)' } });
-  if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
-  return res.text();
+// ⚠ RETRIES BECAUSE A 10 MB BODY REALLY DOES GET DROPPED. Canada's open-data CSV terminated
+// mid-transfer on consecutive runs — `fetch` rejects with a bare "terminated", which the build's
+// per-country guard reports and then skips that country. That is the correct failure (the other
+// countries still build, state is untouched), but a transport hiccup should not cost a country a
+// whole cycle when the next attempt succeeds.
+// ⛔ The retry is on the TRANSPORT only. A non-2xx is returned as-is and never retried: an HTTP
+// error is an answer, and hammering a government endpoint because it said no is how you get
+// blocked.
+async function fetchText(url, attempts = 3) {
+  let last;
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      const res = await fetch(url, {
+        headers: { 'user-agent': 'stophurting-recalls/1.0 (+https://stophurting.org)' },
+        signal: AbortSignal.timeout(180_000),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+      return await res.text();
+    } catch (e) {
+      last = e;
+      if (/^HTTP \d/.test(e.message)) throw e;
+      if (i < attempts) {
+        console.log(`   ↻ ${url.split('/').pop()} failed (${e.message}) — retry ${i} of ${attempts - 1}`);
+        await new Promise((r) => setTimeout(r, 3000 * i));
+      }
+    }
+  }
+  throw new Error(`${last?.message || 'fetch failed'} after ${attempts} attempts: ${url}`);
 }
 
 export const COUNTRIES = Object.keys(SOURCES);
