@@ -21,6 +21,7 @@ import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SOURCES, COUNTRIES, sourceFor, isoDay, clamp } from './sources.mjs';
+import { renderCard } from './card-image.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -160,7 +161,7 @@ ${list.map((i) => `            <li><a href="${recallPath(i)}"><span class="rail-
 }
 
 // ---------- page template ----------
-function recallPage(rec, img, items) {
+function recallPage(rec, img, items, card) {
   const src = sourceFor(cc(rec));
   const { slug, prod, date } = rec;
   const hz = rec.hazard;
@@ -190,7 +191,7 @@ function recallPage(rec, img, items) {
   <link rel="canonical" href="${ORIGIN}${recallPath(rec)}" />
   <meta property="og:title" content="${esc(`${prod} Recall (${monthYear(date)})`)}" />
   <meta property="og:description" content="${esc(desc)}" />
-${img ? `  <meta property="og:image" content="${ORIGIN}${esc(img.rel)}" />\n` : ''}  <meta property="og:type" content="article" />
+${img || card ? `  <meta property="og:image" content="${ORIGIN}${esc(img ? img.rel : card)}" />\n` : ''}  <meta property="og:type" content="article" />
   ${FAVICON}
   <link rel="stylesheet" href="/assets/css/style.css" />
   <script type="application/ld+json">${JSON.stringify(ld)}</script>
@@ -956,6 +957,11 @@ for (const country of TARGETS) {
   for (const rec of fresh) {
     if (!WRITE) { console.log(`  would add: ${country}/${rec.slug}`); continue; }
     const img = await mirrorImage(rec, rec.slug);
+    // ⭐ A regulator that publishes no photograph still needs a share card. Jason, comparing two
+    // live posts: "the uk card looks weak, the us one looks nice." Generated only when there is no
+    // real photo, and used as the og:image ONLY — never as a product figure on the page and never
+    // on the hub, because it is typography rather than a picture of the item.
+    const card = img ? null : await renderCard(sharp, rec, ROOT);
     const prev = state.seen[rec.id];
     // Stamp WHEN WE CORRECTED IT, separately from the regulator's own revision marker — the
     // corrections page sorts on ours, because that is the order a reader needs to see changes in.
@@ -970,10 +976,11 @@ for (const country of TARGETS) {
       ...(rec.cat ? { cat: rec.cat } : {}),
       ...(rec.hash ? { hash: rec.hash } : {}),
       ...(img ? { img: img.rel } : {}),
+      ...(card ? { card } : {}),
       ...(amendedAt ? { amendedAt } : {}),
     };
     if (!prev) newUrls.push(`${ORIGIN}${recallPath(rec)}`);
-    prepared.push({ rec, img });
+    prepared.push({ rec, img, card });
   }
 }
 
@@ -984,10 +991,10 @@ for (const country of TARGETS) {
 if (!prepared.length && !WRITE) process.exit(0);
 if (prepared.length) {
   const all = Object.values(state.seen).sort((a, b) => b.date.localeCompare(a.date));
-  for (const { rec, img } of prepared) {
+  for (const { rec, img, card } of prepared) {
     const dir = path.join(ROOT, cc(rec), 'recalls', rec.slug);
     mkdirSync(dir, { recursive: true });
-    writeFileSync(path.join(dir, 'index.html'), recallPage(rec, img, all));
+    writeFileSync(path.join(dir, 'index.html'), recallPage(rec, img, all, card));
     console.log(`  + ${cc(rec)}/${rec.slug}`);
   }
 }

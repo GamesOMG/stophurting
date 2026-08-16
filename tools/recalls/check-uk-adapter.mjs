@@ -141,6 +141,26 @@ check('reports no image rather than inventing one, and supplies a category for t
   eq(balloons.cat, 'Toys', 'the category is the one thing that answers "what kind of thing is this" without a photo');
 });
 
+// ⭐⭐ THE SHARE CARD FOR A SOURCE WITH NO PHOTOGRAPH. Jason, comparing two live Facebook posts:
+// "the uk card looks weak, the us one looks nice." A US post shows the recalled product; a UK post
+// showed a grey rectangle, because OPSS publishes photographs only inside PDFs. So imageless
+// recalls get a generated, branded card — used as the og:image ONLY.
+// ⛔ IT MUST NEVER BECOME A PRODUCT PHOTO. It does not depict the item, so it must not appear as
+// the page's figure or as a hub thumbnail, where a reader would take it for one. The hub keeps
+// the typographic tile it already had.
+check('generates a share card for UK recalls and uses it only as the og:image', () => {
+  const root = path.join(HERE, '..', '..');
+  const slug = 'eurowrap-25pk-blue-party-balloons-recall-2608-0108';
+  const page = readFileSync(path.join(root, 'uk', 'recalls', slug, 'index.html'), 'utf8');
+  has(page, `og:image" content="https://stophurting.org/assets/img/recalls/${slug}/card.webp`,
+    'a UK post with no og:image is a grey rectangle in a feed');
+  // the card must NOT be rendered into the page body as though it were a photo of the product
+  hasNot(page, `<img src="/assets/img/recalls/${slug}/card.webp`,
+    'the generated card is typography, not a photograph — showing it as the product figure would be inventing evidence');
+  const hub = readFileSync(path.join(root, 'uk', 'recalls', 'index.html'), 'utf8');
+  hasNot(hub, 'card.webp', 'the hub keeps its typographic tile; a 1200x630 banner letterboxed into a thumbnail is worse');
+});
+
 // ── config ─────────────────────────────────────────────────────────────────────────────────
 check('declares the config build.mjs reads', () => {
   const s = SOURCES.uk;
