@@ -141,7 +141,16 @@ function railLinks(items, slug, hazard) {
 ${list.map((i) => `            <li><a href="/recalls/${i.slug}/"><span class="rail-prod">${esc(clamp(i.prod, 60))}</span><span class="rail-date">${esc(i.date)}</span></a></li>`).join('\n')}
           </ul>
         </section>`);
-  return block('Same hazard', sameHazard) + block('Recent recalls', recent);
+  // A permanent card, not conditional: the transparency page only builds trust if it is always
+  // reachable, including when it is empty.
+  const log = `
+        <section class="rail-card">
+          <h2 class="rail-title">Corrections</h2>
+          <ul class="rail-list">
+            <li><a href="/updates/"><span class="rail-prod">Corrected &amp; withdrawn notices</span><span class="rail-date">what changed, and when</span></a></li>
+          </ul>
+        </section>`;
+  return block('Same hazard', sameHazard) + block('Recent recalls', recent) + log;
 }
 
 // ---------- page template ----------
@@ -238,7 +247,7 @@ const HEADER = `<header class="site-header"><div class="wrap header-inner"><a cl
 // and their absence is a standard site-level rejection.
 // 🚧 Contact is added here the moment /contact/ exists — the dead-links check refuses a footer
 // link to a page that is not on disk, which is exactly what it is for.
-const FOOTER = `<footer class="site-footer"><div class="wrap">© StopHurting — recall data from the U.S. Consumer Product Safety Commission (public domain). Not legal or medical advice. &nbsp;·&nbsp; <a href="/privacy/">Privacy</a> &nbsp;·&nbsp; <a href="/contact/">Contact</a> &nbsp;·&nbsp; <a href="/about/">About</a></div></footer>`;
+const FOOTER = `<footer class="site-footer"><div class="wrap">© StopHurting — recall data from the U.S. Consumer Product Safety Commission (public domain). Not legal or medical advice. &nbsp;·&nbsp; <a href="/updates/">Corrections</a> &nbsp;·&nbsp; <a href="/privacy/">Privacy</a> &nbsp;·&nbsp; <a href="/contact/">Contact</a> &nbsp;·&nbsp; <a href="/about/">About</a></div></footer>`;
 const FAVICON = `<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 26'><path d='M12 1l10 4v7c0 6.5-4.3 11.3-10 13C6.3 23.3 2 18.5 2 12V5l10-4z' fill='%23e07b39'/><path d='M7.5 12.5l3 3 6-6' stroke='%2316334f' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>" />`;
 
 function row(r) {
@@ -299,6 +308,58 @@ ${rows}
 </html>
 `;
 }
+// ---------- corrections (transparency) ----------
+// ⭐ Jason's word for this: TRANSPARENCY. A site whose promise is "if this page disagrees with the
+// official notice, the notice wins" has to show its corrections in public, not fix them quietly.
+// It also solves a real discoverability problem he named: a recall amended today sorts by its
+// ORIGINAL recall date, so a correction lands fourteen days deep in the list where nobody sees it.
+// This page is sorted by WHEN WE CHANGED IT, which is the only order that surfaces a correction.
+function updatesPage(items) {
+  const withdrawn = items.filter((r) => r.withdrawn)
+    .sort((a, b) => String(b.withdrawn).localeCompare(String(a.withdrawn)));
+  const amended = items.filter((r) => r.amendedAt && !r.withdrawn)
+    .sort((a, b) => String(b.amendedAt).localeCompare(String(a.amendedAt)));
+  const row = (r, when, note) => `        <li><a class="r-row" href="/recalls/${r.slug}/"><span class="r-date">${esc(when)}</span><span class="r-prod">${esc(clamp(r.prod, 70))}</span><span class="r-hazard">${esc(note)}</span></a></li>`;
+  const block = (title, sub, list, render) => (!list.length ? '' : `
+      <h2 class="section-title" style="font-size:1.35rem;margin-top:2rem">${esc(title)}</h2>
+      <p class="section-sub">${esc(sub)}</p>
+      <ul class="r-list">
+${list.map(render).join('\n')}
+      </ul>`);
+  const body = block(
+    'Withdrawn notices', 'The CPSC notice behind these pages was withdrawn or replaced. The page is kept so anyone who bookmarked it finds out.',
+    withdrawn, (r) => row(r, r.withdrawn, 'withdrawn — see the official notice'))
+    + block(
+    'Corrected pages', 'The CPSC amended these notices after we first published them. Each page was rebuilt from the updated record.',
+    amended, (r) => row(r, r.amendedAt, `updated — notice revised ${r.modified}`));
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Corrections &amp; Withdrawals — StopHurting</title>
+  <meta name="description" content="Every recall page we have corrected or marked withdrawn, and when. Recalls change after they are issued; this page records it in public." />
+  <link rel="canonical" href="${ORIGIN}/updates/" />
+  ${FAVICON}
+  <link rel="stylesheet" href="/assets/css/style.css" />
+</head>
+<body>
+  ${HEADER}
+  <main>
+    <section class="wrap section">
+      <h1 class="section-title">Corrections &amp; withdrawals</h1>
+      <p class="section-sub">Recalls do not stand still. The CPSC expands them, corrects unit counts and remedies, and occasionally withdraws a notice altogether. When that happens we rebuild the page from the updated record — and list it here, sorted by when it changed rather than when the recall was issued, so a correction cannot get buried behind two weeks of newer recalls.</p>
+${body || '      <p class="section-sub">Nothing to report: no page has needed a correction, and no notice we track has been withdrawn.</p>'}
+      <p class="section-sub" style="margin-top:2rem">Spotted something we have wrong? <a href="/contact/">Tell us</a> — the official notice wins, always.</p>
+    </section>
+  </main>
+  ${FOOTER}
+</body>
+</html>
+`;
+}
+
 // ---------- privacy ----------
 // ⭐ AdSense's program policies REQUIRE a privacy policy disclosing third-party advertising
 // cookies. The site had none, which is close to an automatic rejection and is the likeliest
@@ -575,8 +636,37 @@ const since = sinceIdx > -1 ? process.argv[sinceIdx + 1]
 const res = await fetch(`https://www.saferproducts.gov/RestWebServices/Recall?format=json&RecallDateStart=${since}`);
 if (!res.ok) { console.error(`CPSC feed HTTP ${res.status} — aborting, state untouched.`); process.exit(1); }
 const feed = await res.json();
-const fresh = REBUILD ? feed : feed.filter((r) => !state.seen[r.RecallID]);
-console.log(`feed: ${feed.length} recalls since ${since} · ${REBUILD ? 'REBUILD all' : 'new'}: ${fresh.length}`);
+// ⭐ RECONCILE, not just append. The original filter skipped every recall we had already seen,
+// which meant two silent failures on a site whose whole promise is "the official notice wins":
+//   · CPSC AMENDS recalls constantly — units, remedies, added models. LastPublishDate moves and
+//     we already store it as `modified`, but nothing compared them, so our page kept the original
+//     text forever.
+//   · CPSC WITHDRAWS recalls. The record leaves the feed, state.seen keeps it, and the page stays
+//     up telling people a product is dangerous when the notice behind it is gone.
+const seenIds = new Set(Object.keys(state.seen));
+const feedIds = new Set(feed.map((r) => String(r.RecallID)));
+const amended = REBUILD ? [] : feed.filter((r) => {
+  const prev = state.seen[r.RecallID];
+  return prev && isoDay(r.LastPublishDate) && isoDay(r.LastPublishDate) !== prev.modified;
+});
+// ⛔ ABSENCE NEVER DELETES. Only recalls whose date falls INSIDE the window we just fetched can
+// meaningfully be "missing" — anything older simply was not requested. And even then this only
+// REPORTS: a CPSC outage or an API change would otherwise wipe pages wholesale, and a page we
+// wrongly deleted is unrecoverable while a page we wrongly kept is one edit away from correct.
+const vanished = [...seenIds].filter((id) => {
+  const r = state.seen[id];
+  return r.date >= since && !feedIds.has(String(id));
+});
+const fresh = REBUILD ? feed : [...feed.filter((r) => !state.seen[r.RecallID]), ...amended];
+console.log(`feed: ${feed.length} recalls since ${since} · ${REBUILD ? 'REBUILD all' : 'new'}: ${fresh.length - amended.length} · amended: ${amended.length}`);
+for (const r of amended) console.log(`  ~ AMENDED since we published: ${state.seen[r.RecallID].slug} (${state.seen[r.RecallID].modified} -> ${isoDay(r.LastPublishDate)})`);
+if (vanished.length) {
+  console.log(`\n🔴 ${vanished.length} recall(s) are on our site but NO LONGER IN THE CPSC FEED for this window.`);
+  console.log(`   These pages still say a product is recalled. Check each against the official notice —`);
+  console.log(`   withdrawn, or a feed glitch? NOTHING is deleted automatically.`);
+  for (const id of vanished) console.log(`   · ${state.seen[id].slug}  (recall no. ${state.seen[id].num}, ${state.seen[id].date})`);
+  console.log('');
+}
 if (!fresh.length && !WRITE) process.exit(0);
 
 // TWO PASSES, and the split is load-bearing. The rail's "same hazard" / "recent recalls" links
@@ -594,10 +684,17 @@ for (const rec of fresh) {
     ...(rec.ProductUPCs || []).map((u) => (typeof u === 'string' ? u : u?.UPC)).filter(Boolean),
   ].join(' ');
   const wasSeen = !!state.seen[rec.RecallID];
+  const prev = state.seen[rec.RecallID];
+  // Stamp WHEN WE CORRECTED IT, separately from CPSC's own revision date — the corrections page
+  // sorts on ours, because that is the order a reader needs to see changes in.
+  const amendedAt = (prev && isoDay(rec.LastPublishDate) && prev.modified !== isoDay(rec.LastPublishDate))
+    ? new Date().toISOString().slice(0, 10) : (prev ? prev.amendedAt : undefined);
   state.seen[rec.RecallID] = {
+    ...(prev || {}),
     slug, prod: productName(rec), hazard: hazardShort(rec),
     date: isoDay(rec.RecallDate), modified: isoDay(rec.LastPublishDate), num: rec.RecallNumber,
     models,
+    ...(amendedAt ? { amendedAt } : {}),
   };
   if (!wasSeen) newUrls.push(`${ORIGIN}/recalls/${slug}/`);
   prepared.push({ rec, slug, img });
@@ -617,6 +714,8 @@ if (WRITE) {
   mkdirSync(path.join(ROOT, 'recalls'), { recursive: true });
   writeFileSync(path.join(ROOT, 'recalls', 'index.html'), hubPage(items));
   writeFileSync(path.join(ROOT, '404.html'), notFoundPage(items));
+  mkdirSync(path.join(ROOT, 'updates'), { recursive: true });
+  writeFileSync(path.join(ROOT, 'updates', 'index.html'), updatesPage(items));
   mkdirSync(path.join(ROOT, 'privacy'), { recursive: true });
   writeFileSync(path.join(ROOT, 'privacy', 'index.html'), privacyPage());
   mkdirSync(path.join(ROOT, 'contact'), { recursive: true });
