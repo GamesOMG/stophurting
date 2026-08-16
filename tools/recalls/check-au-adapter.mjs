@@ -188,7 +188,7 @@ check('declares the Australian window incomplete, so withdrawal detection stays 
 
 check('every source declares the config the build reads', () => {
   for (const [ccode, s] of Object.entries(SOURCES)) {
-    for (const f of ['cc', 'country', 'agency', 'agencyShort', 'noticeName', 'hubCrumb',
+    for (const f of ['cc', 'country', 'countryIn', 'agency', 'agencyShort', 'noticeName', 'hubCrumb',
       'footerCredit', 'revisionKey', 'hubTitle', 'hubHeading']) {
       if (!s[f]) throw new Error(`source "${ccode}" has no ${f} — build.mjs reads it and would render "undefined" onto a live page`);
     }

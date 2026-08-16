@@ -342,6 +342,9 @@ export const SOURCES = {
   us: {
     cc: 'us',
     country: 'United States',
+    // The form that reads correctly after "in …" on the homepage hero. 'in United States' is
+    // wrong and 'in the Australia' is worse, so the article belongs to the source, not the sentence.
+    countryIn: 'the United States',
     agency: 'U.S. Consumer Product Safety Commission',
     agencyShort: 'CPSC',
     // The body's "the official CPSC recall notice". The meta description is written by the
@@ -369,6 +372,7 @@ export const SOURCES = {
   au: {
     cc: 'au',
     country: 'Australia',
+    countryIn: 'Australia',
     agency: 'ACCC Product Safety Australia',
     agencyShort: 'ACCC',
     noticeName: 'Product Safety Australia recall notice',
