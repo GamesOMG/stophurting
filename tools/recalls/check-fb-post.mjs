@@ -167,6 +167,24 @@ run('pacing-catches-up-when-runs-were-missed', {
 });
 
 // RAIL 3b — oldest first, so a busy week cannot starve an older unposted recall.
+// ⭐ The pacing divisor follows the SOURCE's schedule, not the CPSC's calendar. Jason spotted the
+// assumption: the other three regulators publish on every weekday (US is Thursday 134/134, but
+// CA is Thu 29%, UK 15%, AU 20%). Pointing the old maths at a continuous publisher would divide a
+// steady daily stream by up to 42 runs and fall permanently behind.
+run('paces-a-continuous-publisher-over-a-day-not-a-week', {
+  seen: Object.fromEntries([
+    ['ca1', { slug: 'ca-a-recall', prod: 'CA A', hazard: 'fire hazard', date: day(-1), num: '', country: 'ca' }],
+    ['ca2', { slug: 'ca-b-recall', prod: 'CA B', hazard: 'fire hazard', date: day(-1), num: '', country: 'ca' }],
+    ['ca3', { slug: 'ca-c-recall', prod: 'CA C', hazard: 'fire hazard', date: day(-1), num: '', country: 'ca' }],
+  ]),
+  fbState: { backfill: [], posted: {} },
+  args: ['--country', 'ca'],
+}, (out) => {
+  must(out, 'publishes on any weekday', 'the run must name the schedule it actually used');
+  mustNot(out, 'drops weekly', 'Canada has no weekly drop day, and claiming one is the bug');
+  must(out, '6 run(s) left', 'a continuous publisher spreads over ~24h — six 4-hourly runs, not up to 42');
+});
+
 run('rail3b-oldest-first', {
   seen: Object.fromEntries([rec(9, day(-1)), rec(7, day(-20)), rec(8, day(-10))]),
   fbState: { backfill: [], posted: {} },

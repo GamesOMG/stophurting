@@ -66,30 +66,44 @@ const argOf = (flag, dflt) => {
 };
 const COMMIT = process.argv.includes('--commit');
 
-// ⭐ CPSC POSTS ONLY ON THURSDAYS. Measured 2026-08-16 across 57 days: 109 recalls, every single
-// one on a Thursday, nine Thursdays in a row, 7–18 per drop. Nothing on any other weekday, ever.
-// A fixed cap of 3/run with a 4-hourly task would clear an 18-recall Thursday inside 12 hours and
-// then post nothing for six days — burst, then dead air, which is the worst shape for a
-// feed-ranked platform.
-// So the cap is COMPUTED: remaining candidates ÷ runs left before the next Thursday. An 18-recall
-// batch becomes ~1 per run across the week, and a missed run shrinks the divisor so the next run
-// catches up on its own. No schedule table, and nothing for Jason to do on Thursdays.
+// ⛔ Default 'us', never 'all'. A default that widens as countries are added is a default that
+// silently changes what gets published every time the site grows — the opposite of a rail.
+const POST_COUNTRY = argOf('--country', 'us');
 const RUN_INTERVAL_HOURS = 4;   // the stophurting-recalls task cadence
 const MAX_PER_RUN = 3;          // hard ceiling, whatever the maths says
-function runsUntilNextDrop(now = new Date()) {
-  const day = now.getDay();                    // 0 Sun … 4 Thu
-  let daysToThu = (4 - day + 7) % 7;
-  if (daysToThu === 0) daysToThu = 7;          // it IS Thursday: the next drop is a week out
-  const hoursLeft = daysToThu * 24 - now.getHours();
+// ⭐⭐ THE THURSDAY MATHS IS A PROPERTY OF THE CPSC, NOT OF RECALLS. Jason asked the right
+// question — "the other places don't just post on Thursdays, so why are we waiting?" — and the
+// answer is that we are not waiting for Thursday, we are waiting for the CPSC, which only moves
+// on Thursday. Re-measured 2026-08-16 against our own 354 records:
+//     US 134 recalls — Thursday 134, every single one, 100%
+//     AU  25 — Mon 2 · Tue 4 · Wed 7 · Thu 5 · Fri 7      (Thu 20%)
+//     CA  96 — Mon 6 · Tue 18 · Wed 19 · Thu 28 · Fri 23 · Sat 2   (Thu 29%)
+//     UK  99 — Mon 19 · Tue 29 · Wed 15 · Thu 15 · Fri 21 (Thu 15%)
+// ⛔ SO THE PACING IS ONLY VALID FOR A US LANE, and nothing used to enforce that. Point this at
+// Canada and it would divide a steady daily stream by "runs until Thursday" — up to 42 — and
+// dribble out one post per run while recalls piled up faster than it published.
+// A source that publishes on a weekly drop wants the batch spread until the next drop. A source
+// that publishes continuously wants a flat rate. So the schedule is declared per country and the
+// divisor follows it, instead of one regulator's calendar being baked in as if it were a fact
+// about the world.
+const WEEKLY_DROP_DAY = { us: 4 };   // 0 Sun … 4 Thu. Absent = publishes on any weekday.
+function runsUntilNextDrop(now = new Date(), country = POST_COUNTRY) {
+  const dropDay = WEEKLY_DROP_DAY[country];
+  if (dropDay === undefined) {
+    // Continuous publisher: spread across roughly a day, so a batch clears without either
+    // flooding the feed or falling behind the next day's notices.
+    return Math.max(1, Math.floor(24 / RUN_INTERVAL_HOURS));
+  }
+  const day = now.getDay();
+  let daysToDrop = (dropDay - day + 7) % 7;
+  if (daysToDrop === 0) daysToDrop = 7;        // it IS drop day: the next one is a week out
+  const hoursLeft = daysToDrop * 24 - now.getHours();
   return Math.max(1, Math.floor(hoursLeft / RUN_INTERVAL_HOURS));
 }
 // --runs-left exists so the pacing can be tested deterministically; production never passes it.
 const RUNS_LEFT = Number(argOf('--runs-left', runsUntilNextDrop()));
 const EXPLICIT_LIMIT = process.argv.includes('--limit') ? Number(argOf('--limit', 3)) : null;
 const MAX_AGE_DAYS = Number(argOf('--max-age', 30));
-// ⛔ Default 'us', never 'all'. A default that widens as countries are added is a default that
-// silently changes what gets published every time the site grows — the opposite of a rail.
-const POST_COUNTRY = argOf('--country', 'us');
 // ⭐ Operator action, run once when a country is added to the SITE but not to the Facebook lane.
 // After Australia, Canada and the UK landed, 220 recalls sat outside the backfill and RAIL 6 WAS
 // THE ONLY THING keeping them off a US page. One rail is not a rail on something that runs
@@ -214,7 +228,14 @@ async function main() {
   const LIMIT = EXPLICIT_LIMIT !== null
     ? EXPLICIT_LIMIT
     : Math.max(1, Math.min(MAX_PER_RUN, Math.ceil(candidates.length / RUNS_LEFT)));
-  console.log(`pacing      : ${RUNS_LEFT} run(s) left before the next Thursday drop -> ${LIMIT}/run${EXPLICIT_LIMIT !== null ? ' (--limit override)' : ''}`);
+  // ⚠ Name the schedule it actually used. The line said "before the next Thursday drop" whatever
+  // country was selected, which for a continuous publisher would have been a confident lie in the
+  // one place someone would look to check the pacing.
+  const dropDay = WEEKLY_DROP_DAY[POST_COUNTRY];
+  const basis = dropDay === undefined
+    ? `${POST_COUNTRY.toUpperCase()} publishes on any weekday, so spreading over ~24h`
+    : `${POST_COUNTRY.toUpperCase()} drops weekly on ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][dropDay]}`;
+  console.log(`pacing      : ${basis} — ${RUNS_LEFT} run(s) left -> ${LIMIT}/run${EXPLICIT_LIMIT !== null ? ' (--limit override)' : ''}`);
   console.log(`candidates  : ${candidates.length}${candidates.length > LIMIT ? ` (capping at ${LIMIT} this run)` : ''}`);
   console.log(`mode        : ${COMMIT ? '🔴 COMMIT — will publish' : 'DRY — nothing will be published'}\n`);
 
