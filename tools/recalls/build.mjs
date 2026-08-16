@@ -445,10 +445,13 @@ ${body || '      <p class="section-sub">Nothing to report: no page has needed a 
 // ⭐ AdSense's program policies REQUIRE a privacy policy disclosing third-party advertising
 // cookies. The site had none, which is close to an automatic rejection and is the likeliest
 // single reason the 2026-08-16 application was refused.
-// ⛔ EVERY CLAIM BELOW MUST STAY TRUE. Measured on 2026-08-16: no analytics script of any kind
-// anywhere in the site, no accounts, no newsletter, no forms. If any of that changes, this page
-// changes in the SAME commit — a privacy policy that describes a site we no longer run is worse
-// than none, because it is a written promise we are visibly breaking.
+// ⛔⛔ EVERY CLAIM BELOW MUST STAY TRUE, AND THIS RULE HAS ALREADY BEEN CASHED IN. The page said
+// "We run no analytics software" — true when written, false the hour Ahrefs Web Analytics was
+// added, so both changed in the same commit. A privacy policy describing a site we no longer run
+// is worse than none: it is a written promise we are visibly breaking, on a site whose AdSense
+// application is mid-recrawl after a refusal.
+// Still true as of 2026-08-16: no accounts, no newsletter, no comments, no forms of any kind, and
+// the only analytics is the cookie-free one named below. Change any of that, change this page.
 function privacyPage() {
   const today = new Date().toISOString().slice(0, 10);
   return `<!doctype html>
@@ -473,9 +476,14 @@ function privacyPage() {
       </header>
       <div class="prose">
         <h2>What we collect</h2>
-        <p>Nothing automatically. StopHurting.org has no accounts, no newsletter, no comments and
-        no forms of any kind. We run no analytics software, so we do not build a profile of you,
-        and we do not sell or share data about you.</p>
+        <p>StopHurting.org has no accounts, no newsletter, no comments and no forms of any kind.
+        We do not build a profile of you, and we do not sell or share data about you.</p>
+        <p>We do use one analytics tool —
+        <a href="https://ahrefs.com/web-analytics" target="_blank" rel="noopener nofollow">Ahrefs Web Analytics</a>
+        — to count visits and see which pages people actually read. Ahrefs states that it sets no
+        cookies and collects no personal data. We use it to learn that a page was read, not to
+        learn anything about the person who read it, and we could not identify you from what it
+        shows us even if we wanted to.</p>
         <p>The search box on the recalls page runs entirely in your browser against a file your
         browser downloads. What you type into it is never sent to us.</p>
 
@@ -493,9 +501,8 @@ function privacyPage() {
         do not receive a per-visitor report from it.</p>
 
         <h2>Advertising</h2>
-        <p>StopHurting.org intends to display advertising through Google AdSense. No advertising
-        code is active on the site while that application is pending; once it is live, the
-        following applies:</p>
+        <p>StopHurting.org displays advertising through Google AdSense, and Google's advertising
+        code is loaded on every page of this site. The following applies:</p>
         <ul>
           <li>Third-party vendors, including Google, use cookies to serve ads based on your prior
           visits to this and other websites.</li>
@@ -733,6 +740,53 @@ ${items.slice(0, 15).map(row).join('\n')}
 // ⭐ The header matters as much as the footer now: Jason's call is that a transparency link
 // buried in footer small print is not transparency — "sites that bury their links in small print
 // on the bottom are not really being transparent" — so Corrections lives in the nav.
+// ⚠ ADDING THIS OBLIGED A PRIVACY-POLICY CHANGE IN THE SAME COMMIT. privacyPage() used to say
+// "We run no analytics software" — true when written, and false the moment this tag shipped. A
+// privacy policy describing a site we no longer run is worse than none: it is a written promise
+// we are visibly breaking, on a site whose AdSense application is mid-recrawl after a refusal.
+// Ahrefs Web Analytics is cookie-free and states it collects no personal data (verified on their
+// own page, 2026-08-16), which is what the policy now says — no more, no less.
+// ⛔ AND THE ADSENSE LOADER MADE A SECOND CLAIM FALSE in the same breath: the policy said "No
+// advertising code is active on the site while that application is pending." It is active now.
+// Both sentences were corrected in the commit that added these tags.
+// Each entry is [tag, matcher]. The matcher keeps an already-present tag in step rather than
+// appending a duplicate — two AdSense loaders on one page breaches Google's own rules.
+const HEAD_TAGS = [
+  ['<script src="https://analytics.ahrefs.com/analytics.js" data-key="HcJhlYTfm1oP/JgndjscNA" async></script>',
+    /<script src="https:\/\/analytics\.ahrefs\.com\/analytics\.js"[^>]*><\/script>/],
+  ['<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6294793469606803" crossorigin="anonymous"></script>',
+    /<script[^>]*pagead2\.googlesyndication\.com\/pagead\/js\/adsbygoogle\.js[^>]*><\/script>/],
+  // AdSense's site-verification meta. Google asks for it on every page, which is exactly what
+  // this sweep guarantees and what pasting into a template would not.
+  ['<meta name="google-adsense-account" content="ca-pub-6294793469606803">',
+    /<meta name="google-adsense-account"[^>]*>/],
+];
+
+// ⭐⭐ ads.txt IS THE FILE THAT HELPED GET THE SITE REFUSED. Measured 2026-08-16: every missing URL
+// returned HTTP 200 with the HOMEPAGE, /ads.txt included — so AdSense requested an authorised-
+// sellers file and was handed a page of HTML. That is fixed (there is a real 404 now), and this
+// writes the actual file.
+// ⛔ Written by the build, not by hand, and rewritten every run: a file this important must not
+// depend on somebody remembering it survived a deploy. Anything already in it that is not ours is
+// preserved — a publisher can legitimately have several lines, and silently dropping one would
+// unsell that inventory.
+const ADS_TXT_LINE = 'google.com, pub-6294793469606803, DIRECT, f08c47fec0942fa0';
+function writeAdsTxt() {
+  const f = path.join(ROOT, 'ads.txt');
+  const existing = existsSync(f) ? readFileSync(f, 'utf8') : '';
+  const keep = existing.split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith('#') && l !== ADS_TXT_LINE);
+  const body = [
+    '# Authorised digital sellers for stophurting.org.',
+    '# Generated by tools/recalls/build.mjs — see /licensing/ for data sources.',
+    ADS_TXT_LINE,
+    ...keep,
+  ].join('\n');
+  writeFileSync(f, `${body}\n`);
+  return keep.length;
+}
+
 function syncFooters() {
   const skip = new Set(['node_modules', '.git', 'tools', 'assets', '_port']);
   const files = [];
@@ -745,9 +799,18 @@ function syncFooters() {
   let changed = 0;
   for (const f of files) {
     const html = readFileSync(f, 'utf8');
-    const next = html
+    let next = html
       .replace(/<header class="site-header">[\s\S]*?<\/header>/, HEADER)
       .replace(/<footer class="site-footer">[\s\S]*?<\/footer>/, FOOTER);
+    // ⭐ The analytics tag rides the SAME sweep as the header and footer, and for the same reason:
+    // a snippet pasted into the templates would reach the generated pages and miss the homepage,
+    // /about/, /myths/ and the 13 hand-written articles — which is precisely how Privacy and
+    // Contact once landed on 4 pages out of 154. One <head> tag, every file, every build.
+    for (const [tag, re] of HEAD_TAGS) {
+      next = re.test(next)
+        ? next.replace(re, tag)                        // keep an existing tag in step
+        : next.replace('</head>', `  ${tag}\n</head>`);
+    }
     if (next !== html) { writeFileSync(f, next); changed++; }
   }
   return { scanned: files.length, changed };
@@ -1020,6 +1083,7 @@ if (WRITE) {
   injectHome(items);
   writeSearchIndex(items);
   sitemap(items);
+  writeAdsTxt();
   const fs2 = syncFooters();
   console.log(`footers: ${fs2.changed} of ${fs2.scanned} html files updated`);
   writeFileSync(STATE_FILE, JSON.stringify(state, null, 1));
