@@ -162,7 +162,6 @@
   "a76eb701-fd50-4e83-8868-774e98bbad20",
   "ca-82318",
   "ca-82482",
-  "ca-82487",
   "ca-82491",
   "ca-82446",
   "ca-82474",
@@ -256,7 +255,6 @@
   "ca-82081",
   "ca-82066",
   "ca-82088",
-  "uk-2608-0108",
   "uk-2608-0112",
   "uk-2608-0086",
   "uk-2608-0103",
@@ -361,6 +359,18 @@
    "at": "2026-08-16T13:44:57.041Z",
    "postId": "222728804264171_122304089006237829",
    "slug": "goody-king-magnetic-building-cubes-and-blocks-recall-26686"
+  },
+  "ca-82487": {
+   "at": "2026-08-16T21:59:38.784Z",
+   "postId": "222728804264171_122304161852237829",
+   "slug": "tahina-halva-plain-halva-with-chocolate-halva-with-recall-82487",
+   "card": "rendered"
+  },
+  "uk-2608-0108": {
+   "at": "2026-08-16T21:59:42.241Z",
+   "postId": "222728804264171_122304161864237829",
+   "slug": "eurowrap-25pk-blue-party-balloons-recall-2608-0108",
+   "card": "rendered"
   }
  }
 }
