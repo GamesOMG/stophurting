@@ -49,7 +49,9 @@ if (!pt.ok || !pt.data.access_token) {
 }
 const pageToken = pt.data.access_token;
 
-let good = 0, bad = 0;
+// `bad` = Graph will not hand the post back at all. `broke` = the post is there and a reader
+// cannot get from it to the recall. Counted apart because they need different fixes.
+let good = 0, bad = 0, broke = 0;
 for (const [recallId, rec] of entries) {
   const r = await graph(`/${rec.postId}`, {
     fields: 'id,created_time,message,permalink_url,is_published,attachments{title,url,media_type}',
@@ -62,14 +64,33 @@ for (const [recallId, rec] of entries) {
   }
   const d = r.data;
   const att = d.attachments?.data?.[0];
-  console.log(`✅ recall ${recallId} — ${rec.slug}`);
+  // ⛔⛔ RETRIEVABLE IS NOT CORRECT. This printed ✅ and "6 verified live" for the post whose card
+  // read "Page not found — StopHurting" — the exact post Jason was looking at while it did. It
+  // asked the one question it was written to ask (does Graph hand this post back?) and answered it
+  // honestly, which is how a verifier ends up agreeing with a broken page.
+  // The reader's test is not "does the post exist", it is "can I reach the recall from it". So:
+  // a card that scraped our 404, or no card at all with no comment carrying the URL, is a FAILURE
+  // here — reported per post and in the exit code.
+  const cardIs404 = !!att && /page not found/i.test(att.title || '');
+  const noCard = !att;
+  const broken = cardIs404 || noCard;
+  console.log(`${broken ? '🔴' : '✅'} recall ${recallId} — ${rec.slug}`);
   console.log(`   post id    : ${d.id}`);
   console.log(`   created    : ${d.created_time}`);
   console.log(`   published  : ${d.is_published}`);
   console.log(`   permalink  : ${d.permalink_url}`);
   if (att) console.log(`   card       : ${att.media_type}${att.title ? ` — ${att.title}` : ''}`);
   console.log(`   message    :\n${String(d.message || '(none)').split('\n').map((l) => `     │ ${l}`).join('\n')}`);
-  good++;
+  if (cardIs404) console.log('   🔴 THE CARD IS OUR 404 PAGE — this post gives a reader no way to reach the recall.');
+  if (noCard) console.log('   🔴 NO LINK CARD — check the comments carry the URL, or the post is a dead end.');
+  if (broken) {
+    // ⚠ Facebook snapshots the preview at creation and does NOT re-render it — re-scraping the
+    // URL updates the cache and leaves the published post exactly as wrong as it was (measured
+    // 2026-08-17). Deleting and re-posting is the only repair, and that is a decision, not a
+    // cleanup, so this names it rather than doing it.
+    console.log(`   ▸ repair: delete ${d.id} and let the next run re-post it (remove its entry from fb-state.json first).`);
+    broke++;
+  } else good++;
 }
-console.log(`\n${good} verified live${bad ? ` · ${bad} MISSING` : ''}`);
-process.exitCode = bad ? 1 : 0;
+console.log(`\n${good} verified live${bad ? ` · ${bad} MISSING` : ''}${broke ? ` · 🔴 ${broke} PUBLISHED BUT BROKEN` : ''}`);
+process.exitCode = bad || broke ? 1 : 0;

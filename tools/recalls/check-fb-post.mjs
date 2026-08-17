@@ -302,16 +302,32 @@ console.log('\npublish path (fake Graph):');
 
 const { createServer } = await import('node:http');
 let cardMode = 'rendered';
+// ⛔⛔ RAIL 8's mode. The 404 card that reached the page on 2026-08-17 got past rail 7 because rail
+// 7 probes from HERE and Facebook fetches from wherever it likes — so the fake has to be able to
+// disagree with the fake SITE, which is the entire situation being guarded against. With one knob
+// the suite could only ever model a world where our view and Facebook's agree, which is the world
+// in which the bug does not exist.
+let scrapeMode = 'good';
+// The title our real 404 page carries. Asserted against 404.html below, so rewording the page
+// cannot leave the detector matching nothing.
+const NOT_FOUND_TITLE = 'Page not found — StopHurting';
 const seenCalls = [];
 const server = createServer((req, res) => {
   seenCalls.push(`${req.method} ${req.url.split('?')[0]}`);
   const send = (o) => { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
   if (req.method === 'GET' && req.url.includes('fields=access_token')) return send({ access_token: 'FAKE-PAGE-TOKEN' });
+  // Rail 8: Facebook scrapes the URL itself and reports what it got.
+  if (req.method === 'POST' && req.url.includes('scrape=true')) {
+    return send({ id: 'URL_1', og_object: { title: scrapeMode === 'good' ? 'X Recall (August 2026)' : NOT_FOUND_TITLE } });
+  }
   if (req.method === 'POST' && req.url.includes('/feed')) return send({ id: 'PAGE_POST_1' });
   if (req.method === 'GET' && req.url.includes('attachments')) {
-    return send(cardMode === 'rendered'
-      ? { id: 'PAGE_POST_1', attachments: { data: [{ url: 'https://stophurting.org/x/', media_type: 'link' }] } }
-      : { id: 'PAGE_POST_1' });                       // Facebook accepted the post but scraped nothing
+    if (cardMode === 'none') return send({ id: 'PAGE_POST_1' });   // accepted the post, scraped nothing
+    return send({ id: 'PAGE_POST_1', attachments: { data: [{
+      url: 'https://stophurting.org/x/',
+      media_type: 'link',
+      title: cardMode === 'notfound' ? NOT_FOUND_TITLE : 'X Recall (August 2026)',
+    }] } });
   }
   if (req.method === 'POST' && req.url.includes('/comments')) return send({ id: 'COMMENT_1' });
   // Rail 7 probes the recall page itself. A slug containing 'not-live' 404s, so the rail can be
@@ -325,12 +341,30 @@ const server = createServer((req, res) => {
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const base = `http://127.0.0.1:${server.address().port}`;
 
+// ⭐ BACK-PRESSURE AT THE POINT OF USE. Both rails that catch a dead link do it by recognising our
+// own 404 page's title — a string that lives in 404.html, which nobody editing that page would
+// think to grep for. Reword the page and the detector silently matches nothing, which reads
+// exactly like "no problems found". So the suite reads the real page and checks both ends.
+try {
+  // ⚠ SH_SITE_ROOT exists for mutations.mjs, which runs this suite from a COPY of tools/recalls in
+  // a temp dir — where ../../404.html is not the site. Without it this assertion would fail on
+  // every mutation run and drown the one failure the run is there to read.
+  const root = process.env.SH_SITE_ROOT || path.resolve(HERE, '..', '..');
+  const html404 = readFileSync(path.join(root, '404.html'), 'utf8');
+  const title = (html404.match(/<title>([^<]*)<\/title>/i) || [])[1] || '';
+  if (title.trim() !== NOT_FOUND_TITLE) throw new Error(`404.html's title is "${title.trim()}" but this suite models "${NOT_FOUND_TITLE}"`);
+  if (!/page not found/i.test(title)) throw new Error(`fb-post.mjs matches /page not found/i, which does not match 404.html's title "${title.trim()}"`);
+  if (!readFileSync(SCRIPT, 'utf8').includes('/page not found/i')) throw new Error('fb-post.mjs no longer carries the pattern this suite pins');
+  console.log('  ✅ the 404 detector still matches the real 404 page'); pass++;
+} catch (e) { console.log(`  ❌ the 404 detector still matches the real 404 page\n     ${e.message}`); fail++; }
+
 // 🪤 MUST be async. execFileSync blocks this process's event loop, so the in-process fake Graph
 // could never answer the child — the child hung on fetch and the whole suite stalled forever.
 // A synchronous subprocess and an in-process server cannot coexist.
 const execFileAsync = promisify(execFile);
 async function runPublish(name, mode, assert, opts = {}) {
   cardMode = mode;
+  scrapeMode = opts.scrape || 'good';
   seenCalls.length = 0;
   const stateFile = path.join(tmp, `${name}-state.json`);
   const fbFile = path.join(tmp, `${name}-fb.json`);
@@ -338,7 +372,7 @@ async function runPublish(name, mode, assert, opts = {}) {
   writeFileSync(stateFile, JSON.stringify({ seen: opts.seen || Object.fromEntries([rec(1, day(-1))]), indexnowKey: 'x' }));
   writeFileSync(fbFile, JSON.stringify({ backfill: [], posted: {} }));
   writeFileSync(tokFile, '222728804264171\nFIXTURE-NOT-A-REAL-TOKEN-000000000000\n');
-  let out;
+  let out, code = 0;
   try {
     const r = await execFileAsync(process.execPath, [SCRIPT, '--commit', '--pause', '0', '--live-tries', '2', '--live-wait', '50', ...(opts.args || [])], {
       env: { ...process.env, SH_STATE_FILE: stateFile, SH_FB_STATE_FILE: fbFile, SH_FB_TOKEN_FILE: tokFile, SH_FB_GRAPH_BASE: base, SH_ORIGIN: base },
@@ -346,9 +380,12 @@ async function runPublish(name, mode, assert, opts = {}) {
       timeout: 15000,
     });
     out = r.stdout;
-  } catch (e) { out = `${e.stdout || ''}${e.stderr || ''}`; }
+  } catch (e) { out = `${e.stdout || ''}${e.stderr || ''}`; code = e.code ?? 1; }
   const state = JSON.parse(readFileSync(fbFile, 'utf8'));
-  try { assert(out, state, seenCalls); console.log(`  ✅ ${name}`); pass++; }
+  // ⭐ THE EXIT CODE IS PART OF THE BEHAVIOUR, not incidental to it. The 404 card was detected,
+  // printed and recorded — and the run exited 0, so Task Scheduler reported success and nobody
+  // knew for seven hours. Asserting the message without the code would have passed that build.
+  try { assert(out, state, seenCalls, code); console.log(`  ✅ ${name}`); pass++; }
   catch (e) { console.log(`  ❌ ${name}\n     ${e.message}\n--- output ---\n${out}\n--------------`); fail++; }
 }
 
@@ -357,6 +394,35 @@ await runPublish('publish-records-post-id-and-card', 'rendered', (out, state, ca
   if (state.posted.id1?.postId !== 'PAGE_POST_1') throw new Error('post id must be persisted to fb-state');
   if (state.posted.id1?.card !== 'rendered') throw new Error(`card should be "rendered", got ${state.posted.id1?.card}`);
   if (calls.some((c) => c.includes('/comments'))) throw new Error('a rendered card must NOT trigger a comment');
+});
+
+// ⛔⛔ RAIL 8 — the one that was missing on 2026-08-17. Our own probe said 200 ("live after 2
+// check(s)" is in the run log), Facebook fetched the same URL seconds later and got the 404, and
+// the post shipped reading "Page not found — StopHurting" under a real recall headline. The fake
+// site here answers 200 exactly as production did, so this scenario is precisely the case rail 7
+// cannot see: the ONLY thing wrong is what Facebook sees.
+await runPublish('rail8-refuses-when-facebook-still-sees-the-404', 'rendered', (out, state, calls) => {
+  must(out, 'facebook cannot see the page yet', 'the refusal must name its reason');
+  if (calls.some((c) => c.includes('/feed'))) throw new Error('NOTHING may be published while Facebook is still being served the 404 page — that is the whole rail');
+  if (Object.keys(state.posted).length) throw new Error('a refused recall must NOT be recorded, or it is lost instead of retried next run');
+}, { scrape: 'notfound' });
+
+// The other half of the same rail: it has to let a good page through, or it is just an outage.
+await runPublish('rail8-publishes-once-facebook-has-the-real-page', 'rendered', (out, state, calls) => {
+  must(out, 'facebook scraped: X Recall', 'the run must record what Facebook actually got, not that it asked');
+  if (!calls.includes('POST /')) throw new Error('rail 8 must actually ask Facebook — a rail that makes no call is not a rail');
+  if (state.posted.id1?.card !== 'rendered') throw new Error(`a good page must still publish normally, got ${state.posted.id1?.card}`);
+});
+
+// ⛔ THE BACKSTOP, for the day Facebook agrees to the scrape and snapshots something else anyway.
+// Detecting it was never the gap — the run DID print this line on 2026-08-17. The gap was that it
+// then exited 0 and left a recall notice on the page with no way to reach the recall.
+await runPublish('a-404-card-gets-a-comment-and-fails-the-run', 'notfound', (out, state, calls, code) => {
+  must(out, 'the card scraped our 404 page', 'the wrong card must be named');
+  if (!calls.some((c) => c.includes('/comments'))) throw new Error('a 404 card leaves the post with no way to reach the recall — the URL must go in a comment');
+  if (state.posted.id1?.card !== 'SCRAPED-404+comment') throw new Error(`the record must say what happened, got ${state.posted.id1?.card}`);
+  if (code === 0) throw new Error('a post that is live and wrong CANNOT be repaired in place — the run must fail so a human hears about it');
+  must(out, 'NEED A HUMAN', 'the run must say plainly that this one needs hands');
 });
 
 await runPublish('self-heals-when-no-card-renders', 'none', (out, state, calls) => {

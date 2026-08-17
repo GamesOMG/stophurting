@@ -140,8 +140,13 @@ const MUTATIONS = [
     name: 'CA withdrawal detection switched on for a self-filtered feed',
     file: 'sources.mjs',
     suite: 'check-ca-adapter.mjs',
-    find: "    completeWindow: false,\n    windowNote: 'the file IS the complete archive,",
-    replace: "    completeWindow: true,\n    windowNote: 'the file IS the complete archive,",
+    // ⚠ Anchored on the CA-only comment above the flag, not on the flag plus its neighbour: the
+    // original anchor assumed `windowNote` came next and rotted silently the day `quietDays` was
+    // inserted between them, leaving this mutation unapplied — reported, but for eight days
+    // nobody read the report. `completeWindow: false,` alone is not unique (CA, UK and AU all
+    // carry it), so the anchor has to include something only Canada says.
+    find: "    // on canada.ca means closed/old, NOT withdrawn, so it must not be published as one.\n    completeWindow: false,",
+    replace: "    // on canada.ca means closed/old, NOT withdrawn, so it must not be published as one.\n    completeWindow: true,",
     expect: 'declares its window incomplete',
     why: 'every Canadian recall would be published as withdrawn the day it aged past 90 days',
   },
@@ -226,6 +231,48 @@ const MUTATIONS = [
     expect: 'strips everything it does not explicitly allow',
     why: 'foreign markup injected into our layout, up to and including a script tag',
   },
+
+  // ── the Facebook publish rails ────────────────────────────────────────────────────────────
+  // ⛔ These exist because on 2026-08-17 a rail was added, passed its own suite, and the same
+  // broken post shipped anyway — Jason found it on the page for the second time in a day. The
+  // rails below are the replacement, so the question "can this suite actually fail?" is not one
+  // to answer by reasoning about it a third time.
+  {
+    name: 'rail 8 removed — trust our own probe again',
+    file: 'fb-post.mjs',
+    suite: 'check-fb-post.mjs',
+    find: 'if (!await fbPreviewIsGood(link, pageToken)) {',
+    replace: 'if (false) {',
+    expect: 'rail8-refuses-when-facebook-still-sees-the-404',
+    why: 'this is the exact code path that published "Page not found — StopHurting" under a real recall',
+  },
+  {
+    name: 'a 404 card no longer gets the URL in a comment',
+    file: 'fb-post.mjs',
+    suite: 'check-fb-post.mjs',
+    find: 'if (noCard || wrongCard) {',
+    replace: 'if (noCard) {',
+    expect: 'a-404-card-gets-a-comment-and-fails-the-run',
+    why: 'the post stays live with no route to the recall — the one outcome worse than not posting',
+  },
+  {
+    name: 'the broken post no longer fails the run',
+    file: 'fb-post.mjs',
+    suite: 'check-fb-post.mjs',
+    find: 'needs deleting and re-posting`);\n      process.exitCode = 1;',
+    replace: 'needs deleting and re-posting`);',
+    expect: 'a-404-card-gets-a-comment-and-fails-the-run',
+    why: 'exiting 0 is how Task Scheduler reported success for seven hours while the page was wrong',
+  },
+  {
+    name: 'the 404 title pattern stops matching our 404 page',
+    file: 'fb-post.mjs',
+    suite: 'check-fb-post.mjs',
+    find: 'const NOT_FOUND_TITLE = /page not found/i;',
+    replace: 'const NOT_FOUND_TITLE = /page could not be found/i;',
+    expect: 'the 404 detector still matches the real 404 page',
+    why: 'a detector that matches nothing reads exactly like a detector finding nothing wrong',
+  },
 ];
 
 let caught = 0;
@@ -249,7 +296,14 @@ for (const m of MUTATIONS) {
     let out = '';
     let exitCode = 0;
     try {
-      out = execFileSync(process.execPath, [path.join(dir, m.suite || 'check-au-adapter.mjs')], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
+      out = execFileSync(process.execPath, [path.join(dir, m.suite || 'check-au-adapter.mjs')], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        // The copy lives in a temp dir, so a suite that reads a real page of the site (the 404
+        // title check) has to be told where the site is. Without this it fails on every mutation
+        // and buries the one failure this run exists to read.
+        env: { ...process.env, SH_SITE_ROOT: path.resolve(HERE, '..', '..') },
+      });
     } catch (e) {
       out = `${e.stdout || ''}${e.stderr || ''}`;
       exitCode = e.status ?? 1;

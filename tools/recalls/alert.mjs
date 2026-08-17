@@ -122,3 +122,33 @@ export async function reportHealth(problems, { commit = false } = {}) {
   }
   writeFileSync(ALERT_STATE, JSON.stringify(next, null, 1));
 }
+
+// ⭐ AN EVENT IS NOT A CONDITION, and reportHealth above is built for conditions. "Australia has
+// published nothing for 21 days" is true until it stops being true, so it dedupes and it recovers.
+// "This post shipped with the wrong card" happens once, is already in the past by the time anyone
+// reads it, and never recovers on its own — a post is examined once and then recorded as posted,
+// so it can never be re-detected and there is nothing for a "recovered" mail to mean.
+// ⛔ Running one through the other would also make them clobber each other: reportHealth treats
+// every key absent from THIS call as cleared, so a facebook run with nothing wrong would mail
+// "recovered" for a stale feed that is still stale. Separate function, separate semantics, no
+// shared state file.
+export async function reportEvent(subject, lines, { commit = false } = {}) {
+  if (!lines.length) return;
+  const body = [
+    ...lines.map((l) => `  · ${l}`),
+    '',
+    'This is the stophurting-recalls task, which runs every 4 hours on Borg-Cube.',
+    'Full output: C:\\GitHub\\stophurting\\tools\\recalls\\run.log',
+    '',
+    'A post whose card scraped the 404 page cannot be repaired in place — Facebook snapshots the',
+    'preview when the post is created and does not re-render it. The only fix is to delete the',
+    'post and publish it again, which is why this needs a person.',
+  ].join('\n');
+  if (!commit) { console.log(`   ✉ WOULD email ${TO}: ${subject}`); return; }
+  try {
+    await send(subject, body);
+  } catch (e) {
+    // Same rule as above: a failed alert must never be the thing that fails the run.
+    console.log(`   ✉ alert failed to send (${String(e.message).split('\n')[0]}) — run.log still has it`);
+  }
+}

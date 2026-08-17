@@ -191,6 +191,47 @@ async function urlIsLive(url) {
   return false;
 }
 
+// The site's 404 page carries no og:title, so Facebook falls back to its <title> — this exact
+// string is what a card reads when it scraped a page that was not there yet.
+// ⚠ check-fb-post.mjs asserts this still matches the real 404.html. A detector that quietly stops
+// detecting because somebody reworded a page is the failure this whole file exists to prevent.
+const NOT_FOUND_TITLE = /page not found/i;
+
+// ⛔⛔ RAIL 8 — OUR 200 IS NOT FACEBOOK'S 200, AND ONLY FACEBOOK'S DECIDES WHAT THE CARD SHOWS.
+// Jason found the same broken post on the page TWICE in one day. Rail 7 was not bypassed and did
+// not fail: the run log reads "not live yet (HTTP 404) … live after 2 check(s)" and then the post
+// shipped reading "Page not found — StopHurting" under a real recall headline. Rail 7 did exactly
+// what it was written to do and it was not enough, because it proved the wrong thing.
+// A Cloudflare Pages deploy does not reach every edge at the same instant. Our probe was answered
+// by IAD; Facebook's crawler asked some other PoP seconds later and was still served the 404. So
+// "this machine can fetch the page" was never the precondition — "Facebook can fetch the page" is.
+// ⭐ So make FACEBOOK the prober. POST ?id=<url>&scrape=true fetches the URL as the crawler and
+// returns the og properties it actually got. That is the real path, checked through the real path,
+// which is the only kind of guard worth having — and because the scrape POPULATES the URL cache
+// the post will render from, it removes the race rather than narrowing it.
+// 🪤 A card is snapshotted at post creation and Facebook does NOT retroactively fix it (measured
+// last session: re-scraping updated the cache and left both live posts still reading "Page not
+// found"). There is no repair after the fact short of deleting and re-posting, which is why this
+// has to be settled BEFORE the feed call.
+async function fbPreviewIsGood(url, pageToken) {
+  let last = '';
+  for (let i = 1; i <= LIVE_TRIES; i++) {
+    // id + scrape go in the QUERY STRING, which is the documented form of this call; the token
+    // rides the body like every other write.
+    const r = await graph('/', { access_token: pageToken }, 'POST', { id: url, scrape: 'true' });
+    const title = r.ok ? String(r.data.og_object?.title || r.data.title || '') : '';
+    last = r.ok ? (title || '(no title)') : r.error;
+    if (title && !NOT_FOUND_TITLE.test(title)) {
+      console.log(`   │ facebook scraped: ${title}${i > 1 ? ` (after ${i} scrape(s))` : ''}`);
+      return true;
+    }
+    if (i === 1) console.log(`   │ facebook still sees "${last}" — waiting before it snapshots the card`);
+    if (i < LIVE_TRIES) await sleep(LIVE_WAIT_MS);
+  }
+  console.log(`   │ facebook never got a real page — last scrape: ${last}`);
+  return false;
+}
+
 // ---------- the digest ----------
 // ⭐ ONE post carrying everything the daily budget did not reach. This is what makes the volume
 // flat: however many countries the site adds, the page publishes (budget + 1) posts a day.
@@ -255,13 +296,16 @@ async function postDigest(recs, fb, today, pageId, sysToken, posted) {
 }
 
 // ---------- graph ----------
-async function graph(pathname, params, method = 'GET') {
+async function graph(pathname, params, method = 'GET', query = null) {
   const url = new URL(GRAPH + pathname);
   const body = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
     if (method === 'GET') url.searchParams.set(k, v);
     else body.set(k, v);
   }
+  // Some Graph writes take their subject in the query string even though they are POSTs — the
+  // scrape call is one. Kept separate from `params` so a POST body stays a POST body.
+  if (query) for (const [k, v] of Object.entries(query)) url.searchParams.set(k, v);
   const res = await fetch(url, method === 'GET' ? {} : { method, body });
   const j = await res.json().catch(() => ({}));
   // Meta answers 200 with an `error` object often enough that status alone lies.
@@ -383,7 +427,11 @@ async function main() {
     pageToken = pt.data.access_token;
   }
 
+  // Things a human has to act on, as opposed to things the next run fixes by itself. A rail that
+  // refuses needs nobody: the recall is unrecorded and comes back round. A post that is already
+  // live and wrong cannot be repaired in place — Facebook snapshots the card — so it goes here.
   let published = 0, failed = 0;
+  const problems = [];
   for (const [i, rec] of batch.entries()) {
     const { message, link } = compose(rec);
     console.log(`── ${rec.date}  ${rec.slug}`);
@@ -411,6 +459,15 @@ async function main() {
       continue;                       // NOT recorded as posted, so it is a candidate again
     }
 
+    // ⛔⛔ RAIL 8 — and Facebook has to see it too. Rail 7 above is kept because it is free and it
+    // fails fast on the common case; it is no longer trusted to be sufficient. Same disposal as
+    // rail 7: unrecorded, so the recall is a candidate again rather than lost.
+    if (!await fbPreviewIsGood(link, pageToken)) {
+      console.log('   └ ⏭ facebook cannot see the page yet — leaving it for the next run\n');
+      failed++;
+      continue;
+    }
+
     const r = await graph(`/${pageId}/feed`, { message, link, access_token: pageToken }, 'POST');
     if (!r.ok) {
       // A failure must not poison the rest of the batch, and must NOT be recorded as posted —
@@ -427,19 +484,29 @@ async function main() {
     // ⚠ ASK WHAT RENDERED, NOT MERELY WHETHER SOMETHING DID. This checked only that an attachment
     // existed, so it recorded `card: rendered` for a post whose card read "Page not found —
     // StopHurting". A card that renders the wrong page is not a card.
+    // ⛔ A WRONG CARD IS A MISSING LINK. This used to detect the 404 card, record it, print a red
+    // line — and then return a run that exited 0, so Task Scheduler said success and the only
+    // person who found out was Jason, scrolling his own page. The reader's problem is identical in
+    // both cases: a recall notice with no way to reach the recall. So both now take the SAME
+    // remedy (comment the URL, which is plain text and cannot fail to scrape) and both make the
+    // run fail loudly.
     let card = 'rendered';
     const att = await graph(`/${r.data.id}`, { fields: 'attachments{url,media_type,title}', access_token: pageToken });
     const got = att.ok ? att.data.attachments?.data?.[0] : null;
-    if (got && /page not found/i.test(got.title || '')) {
-      card = 'SCRAPED-404';
-      console.log('   │ 🔴 the card scraped our 404 page — the URL was not live when Facebook fetched it');
-    }
-    if (!att.ok || !(att.data.attachments?.data?.length)) {
+    const wrongCard = !!got && NOT_FOUND_TITLE.test(got.title || '');
+    const noCard = !att.ok || !(att.data.attachments?.data?.length);
+    if (wrongCard) console.log('   │ 🔴 the card scraped our 404 page — the URL was not live when Facebook fetched it');
+    if (noCard || wrongCard) {
       const c = await graph(`/${r.data.id}/comments`, { message: link, access_token: pageToken }, 'POST');
-      card = c.ok ? 'self-healed-comment' : 'MISSING-LINK';
+      if (wrongCard) card = c.ok ? 'SCRAPED-404+comment' : 'SCRAPED-404';
+      else card = c.ok ? 'self-healed-comment' : 'MISSING-LINK';
       console.log(c.ok
-        ? `   │ ⚠ no link card — posted the URL as a comment (${c.data.id})`
-        : `   │ 🔴 no link card AND the comment failed (${c.error}) — THIS POST HAS NO LINK`);
+        ? `   │ ⚠ ${wrongCard ? 'wrong' : 'no'} link card — posted the URL as a comment (${c.data.id})`
+        : `   │ 🔴 ${wrongCard ? 'wrong' : 'no'} link card AND the comment failed (${c.error}) — THIS POST HAS NO LINK`);
+      // ⭐ The post is live and cannot be repaired in place, so this needs a human. Saying so in a
+      // log nobody reads is what let it stand for seven hours.
+      problems.push(`${rec.slug}: facebook rendered ${wrongCard ? 'our 404 page' : 'no card'} — post ${r.data.id} needs deleting and re-posting`);
+      process.exitCode = 1;
     }
 
     posted[rec.id] = { at: new Date().toISOString(), postId: r.data.id, slug: rec.slug, card };
@@ -477,6 +544,22 @@ async function main() {
 
   if (COMMIT) console.log(`published ${published}${failed ? ` · ${failed} failed (will retry next run)` : ''}`);
   else console.log(`${batch.length} would be published. Re-run with --commit to publish.`);
+
+  // ⛔⛔ AND TELL SOMEBODY. This is the half that was missing: the 404 card WAS detected, printed
+  // and recorded on 2026-08-17, the run exited 0, and the first human to know was Jason looking at
+  // the page seven hours later. A correct signal into a log nobody reads is not a signal.
+  // ⚠ alert.mjs was written for exactly this, committed by an automated run, and imported by
+  // nothing — so it had never once fired. It de-duplicates and stays quiet when there is nothing
+  // wrong; with no SMTP credential on the box it says so and does nothing, which is why calling it
+  // unconditionally is safe.
+  if (problems.length) {
+    console.error(`\n🔴 ${problems.length} POST(S) NEED A HUMAN:`);
+    for (const p of problems) console.error(`   · ${p}`);
+  }
+  if (problems.length) {
+    const { reportEvent } = await import('./alert.mjs');
+    await reportEvent(`stophurting: ${problems.length} facebook post(s) shipped without a working link`, problems, { commit: COMMIT });
+  }
 }
 
 await main();
