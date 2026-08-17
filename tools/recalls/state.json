@@ -4041,6 +4041,18 @@
    "models": "ASDA Hapello Power Train",
    "cat": "Toys",
    "card": "/assets/img/recalls/asda-hapello-power-train-recall-2608-0111/card.webp"
+  },
+  "uk-2608-0120": {
+   "country": "uk",
+   "slug": "char-broil-patio-bistro-bbq-grills-recall-2608-0120",
+   "prod": "Char-Broil Patio Bistro BBQ Grills",
+   "hazard": "risk of electric shock",
+   "date": "2026-08-17",
+   "modified": "2026-08-17",
+   "num": "2608-0120",
+   "models": "Char-Broil Patio Bistro BBQ Grills",
+   "cat": "Electrical appliances equipment",
+   "card": "/assets/img/recalls/char-broil-patio-bistro-bbq-grills-recall-2608-0120/card.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
