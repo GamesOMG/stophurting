@@ -314,6 +314,12 @@ const server = createServer((req, res) => {
       : { id: 'PAGE_POST_1' });                       // Facebook accepted the post but scraped nothing
   }
   if (req.method === 'POST' && req.url.includes('/comments')) return send({ id: 'COMMENT_1' });
+  // Rail 7 probes the recall page itself. A slug containing 'not-live' 404s, so the rail can be
+  // seen REFUSING rather than only passing.
+  if (req.method === 'GET' && req.url.includes('/recalls/')) {
+    if (req.url.includes('not-live')) { res.writeHead(404); return res.end('nope'); }
+    res.writeHead(200, { 'content-type': 'text/html' }); return res.end('<html>ok</html>');
+  }
   send({});
 });
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -334,8 +340,8 @@ async function runPublish(name, mode, assert, opts = {}) {
   writeFileSync(tokFile, '222728804264171\nFIXTURE-NOT-A-REAL-TOKEN-000000000000\n');
   let out;
   try {
-    const r = await execFileAsync(process.execPath, [SCRIPT, '--commit', '--pause', '0', ...(opts.args || [])], {
-      env: { ...process.env, SH_STATE_FILE: stateFile, SH_FB_STATE_FILE: fbFile, SH_FB_TOKEN_FILE: tokFile, SH_FB_GRAPH_BASE: base },
+    const r = await execFileAsync(process.execPath, [SCRIPT, '--commit', '--pause', '0', '--live-tries', '2', '--live-wait', '50', ...(opts.args || [])], {
+      env: { ...process.env, SH_STATE_FILE: stateFile, SH_FB_STATE_FILE: fbFile, SH_FB_TOKEN_FILE: tokFile, SH_FB_GRAPH_BASE: base, SH_ORIGIN: base },
       encoding: 'utf8',
       timeout: 15000,
     });

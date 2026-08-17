@@ -54,7 +54,8 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const STATE_FILE = process.env.SH_STATE_FILE || path.join(HERE, 'state.json');
 const FB_STATE_FILE = process.env.SH_FB_STATE_FILE || path.join(HERE, 'fb-state.json');
 const TOKEN_FILE = process.env.SH_FB_TOKEN_FILE || 'C:\\Users\\ImNot\\.secrets\\stophurting-fb-token.txt';
-const ORIGIN = 'https://stophurting.org';
+// Overridable so check-fb-post.mjs can point rail 7 at its fake server; production never sets it.
+const ORIGIN = process.env.SH_ORIGIN || 'https://stophurting.org';
 // Overridable only so check-fb-post.mjs can point the publish path at a local fake Graph. The
 // publish path cannot otherwise be tested without publishing, and an untested publish path is
 // where the "we'll fix it when it breaks" bugs live.
@@ -170,6 +171,24 @@ function compose(rec) {
   const lines = [`Recalled in ${where}: ${rec.prod}`];
   if (hazard) lines.push(`Hazard: ${hazard.charAt(0).toUpperCase() + hazard.slice(1)}`);
   return { message: lines.join('\n'), link: url };
+}
+
+// Waits for a URL to actually serve 200. Overridable so the checks can drive it without hitting
+// the network, and so a slow deploy does not stall a run forever.
+const LIVE_TRIES = Number(argOf('--live-tries', 6));
+const LIVE_WAIT_MS = Number(argOf('--live-wait', 15000));
+async function urlIsLive(url) {
+  for (let i = 1; i <= LIVE_TRIES; i++) {
+    try {
+      // ⚠ GET, not HEAD. Cloudflare Pages answers HEAD for a path it will 404 on GET, so a HEAD
+      // check would have called this page live and posted the dead card anyway.
+      const res = await fetch(url, { redirect: 'follow', headers: { 'user-agent': 'stophurting-recalls/1.0' } });
+      if (res.status === 200) { if (i > 1) console.log(`   │ live after ${i} check(s)`); return true; }
+      if (i === 1) console.log(`   │ not live yet (HTTP ${res.status}) — waiting for the deploy`);
+    } catch { /* network hiccup: treat as not-live and retry */ }
+    if (i < LIVE_TRIES) await sleep(LIVE_WAIT_MS);
+  }
+  return false;
 }
 
 // ---------- the digest ----------
@@ -376,6 +395,22 @@ async function main() {
 
     if (!COMMIT) { console.log('   └ (dry)\n'); continue; }              // RAIL 4
 
+    // ⛔⛔ RAIL 7 — NEVER POST A URL THAT IS NOT LIVE YET. Jason caught this on the page: a real
+    // post read "Recalled in the UK: ASDA Hapello Power Train" above a card saying
+    // "Page not found — StopHurting".
+    // The cause is a RACE I created by wiring this as the task's second action: build.mjs commits
+    // and pushes, this runs seconds later, and Cloudflare Pages has not finished deploying. The
+    // page existed in git and 404'd on the web. Facebook scrapes the instant the post is created,
+    // so it cached the 404 — and rail 5 passed it, because a card DID render. It rendered our
+    // 404 page.
+    // Deploys land in about a minute, so wait for it rather than skipping: a recall held back
+    // here would just post on the next run four hours later.
+    if (!await urlIsLive(link)) {
+      console.log('   └ ⏭ page is not live yet (deploy still landing) — leaving it for the next run\n');
+      failed++;
+      continue;                       // NOT recorded as posted, so it is a candidate again
+    }
+
     const r = await graph(`/${pageId}/feed`, { message, link, access_token: pageToken }, 'POST');
     if (!r.ok) {
       // A failure must not poison the rest of the batch, and must NOT be recorded as posted —
@@ -389,8 +424,16 @@ async function main() {
     // scrape ever fails, we would publish a recall notice with no way to reach the recall: the
     // one outcome worse than not posting. Verify the card exists; if it does not, add the URL as
     // a comment, which cannot fail to scrape because it is plain text.
+    // ⚠ ASK WHAT RENDERED, NOT MERELY WHETHER SOMETHING DID. This checked only that an attachment
+    // existed, so it recorded `card: rendered` for a post whose card read "Page not found —
+    // StopHurting". A card that renders the wrong page is not a card.
     let card = 'rendered';
-    const att = await graph(`/${r.data.id}`, { fields: 'attachments{url,media_type}', access_token: pageToken });
+    const att = await graph(`/${r.data.id}`, { fields: 'attachments{url,media_type,title}', access_token: pageToken });
+    const got = att.ok ? att.data.attachments?.data?.[0] : null;
+    if (got && /page not found/i.test(got.title || '')) {
+      card = 'SCRAPED-404';
+      console.log('   │ 🔴 the card scraped our 404 page — the URL was not live when Facebook fetched it');
+    }
     if (!att.ok || !(att.data.attachments?.data?.length)) {
       const c = await graph(`/${r.data.id}/comments`, { message: link, access_token: pageToken }, 'POST');
       card = c.ok ? 'self-healed-comment' : 'MISSING-LINK';
