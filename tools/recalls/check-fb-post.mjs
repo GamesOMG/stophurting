@@ -147,10 +147,26 @@ run('default-posts-every-country-and-labels-each-one', {
 // reported. So the overflow must be published, not merely capped.
 const many = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => rec(i + 1, day(-1))));
 
+// ⭐⭐ THE SHIPPED CADENCE, with NO flags — every scenario below overrides --max-per-run to test
+// volume, so without this one nothing would cover the configuration that actually runs.
+// ⛔ The old default let a single run spend the whole day's budget: on 2026-08-17 two posts went
+// out THREE SECONDS APART and the page then said nothing for seven hours. His correction: "a post
+// every 4 hours, with a nightly one that wraps up the rest." The task's own 4h schedule is the
+// spacing, so the per-run cap must be exactly 1.
+run('default-posts-ONE-per-run-so-the-schedule-is-the-spacing', {
+  seen: many(7),
+  fbState: { backfill: [], posted: {} },
+  args: ['--digest-after', '99'],           // hold the digest so only the individual cap is in view
+}, (out) => {
+  must(out, 'budget      : 6/day individually · 0 already today -> 1 this run', 'the shipped default is 6/day, one per run');
+  must(out, '6 held for the digest', 'everything beyond this run waits rather than bunching into it');
+  mustNot(out, 'Recalled in the US: Thing 2', 'a SECOND post in one run is the bunching he saw on the page');
+});
+
 run('budget-holds-the-overflow-for-the-digest', {
   seen: many(7),
   fbState: { backfill: [], posted: {} },
-  args: ['--per-day', '3', '--digest-after', '99'],   // 99 = before the digest hour, always
+  args: ['--per-day', '3', '--digest-after', '99', '--max-per-run', '3'],   // 99 = before the digest hour, always
 }, (out) => {
   must(out, 'budget      : 3/day individually · 0 already today -> 3 this run', '');
   must(out, '4 held for the digest', 'the surplus must be accounted for, not silently dropped');
@@ -160,7 +176,7 @@ run('budget-holds-the-overflow-for-the-digest', {
 run('digest-covers-everything-the-budget-did-not-reach', {
   seen: many(7),
   fbState: { backfill: [], posted: {} },
-  args: ['--per-day', '3', '--digest-after', '0'],    // 0 = the digest hour has always passed
+  args: ['--per-day', '3', '--digest-after', '0', '--max-per-run', '3'],    // 0 = the digest hour has always passed
 }, (out) => {
   must(out, '4 recall(s) held back — posting the daily digest', '');
   must(out, '4 more recalls today', 'the digest names how many it covers');
@@ -171,7 +187,7 @@ run('digest-covers-everything-the-budget-did-not-reach', {
 run('digest-runs-once-a-day', {
   seen: many(7),
   fbState: { backfill: [], posted: {}, lastDigest: new Date().toISOString().slice(0, 10) },
-  args: ['--per-day', '3', '--digest-after', '0'],
+  args: ['--per-day', '3', '--digest-after', '0', '--max-per-run', '3'],
 }, (out) => {
   mustNot(out, 'posting the daily digest', 'a second digest on the same day would double-post the overflow');
 });
@@ -180,7 +196,7 @@ run('digest-runs-once-a-day', {
 run('a-single-leftover-is-posted-not-digested', {
   seen: many(4),
   fbState: { backfill: [], posted: {} },
-  args: ['--per-day', '3', '--digest-after', '0'],
+  args: ['--per-day', '3', '--digest-after', '0', '--max-per-run', '3'],
 }, (out) => {
   must(out, 'only 1 held back — posting it individually instead', '');
   mustNot(out, 'posting the daily digest', '');
@@ -194,7 +210,7 @@ run('budget-counts-what-was-already-posted-today', {
     backfill: [],
     posted: { id1: { at: new Date().toISOString(), postId: 'p1', slug: 'thing-1-recall-26001' } },
   },
-  args: ['--per-day', '3', '--digest-after', '99'],
+  args: ['--per-day', '3', '--digest-after', '99', '--max-per-run', '3'],
 }, (out) => {
   must(out, '1 already today -> 2 this run', 'one posted earlier today leaves two of the three');
 });
@@ -459,7 +475,7 @@ await runPublish('digest-records-every-recall-it-covered', 'rendered', (out, sta
   if (individual.length !== 3) throw new Error(`the daily budget of 3 should have posted individually, got ${individual.length}`);
 }, {
   seen: Object.fromEntries(Array.from({ length: 7 }, (_, i) => rec(i + 1, day(-1)))),
-  args: ['--per-day', '3', '--digest-after', '0'],
+  args: ['--per-day', '3', '--digest-after', '0', '--max-per-run', '3'],
 });
 
 server.close();

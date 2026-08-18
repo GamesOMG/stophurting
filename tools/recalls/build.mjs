@@ -797,6 +797,13 @@ const HEAD_TAGS = [
   // this sweep guarantees and what pasting into a template would not.
   ['<meta name="google-adsense-account" content="ca-pub-6294793469606803">',
     /<meta name="google-adsense-account"[^>]*>/],
+  // Pinterest domain verification (claimed 2026-08-17). Pinterest only reads it on the site root,
+  // but it rides the same sweep as everything else here for one reason: a tag pasted into a
+  // template reaches the GENERATED pages and misses the hand-written homepage — which is the only
+  // page Pinterest actually looks at. The sweep covers both, and the matcher lets Pinterest
+  // re-issue the token later without leaving two of them on the page.
+  ['<meta name="p:domain_verify" content="99a14904bcb6a1e254d1ed2687b653f1">',
+    /<meta name="p:domain_verify"[^>]*>/],
 ];
 
 // ⭐⭐ ads.txt IS THE FILE THAT HELPED GET THE SITE REFUSED. Measured 2026-08-16: every missing URL

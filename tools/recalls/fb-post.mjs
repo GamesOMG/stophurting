@@ -87,9 +87,9 @@ const POST_COUNTRIES = COUNTRY_ARG === 'all' ? null : COUNTRY_ARG.split(',').map
 const postsCountry = (cc) => POST_COUNTRIES === null || POST_COUNTRIES.includes(cc);
 const COUNTRY_LABEL = POST_COUNTRIES === null ? 'every country' : POST_COUNTRIES.join(', ').toUpperCase();
 // ⭐⭐ A DAILY BUDGET, NOT A BATCH-SPREADING DIVISOR — his call once he saw the volume.
-// Measured across our own records: US 13.4/wk · CA 7.7 · UK 4.7 · AU 5.1 = ~31/week, ~4.4/day,
-// and that doubles if the site doubles its countries. Posting all of them is 5+ near-identical
-// posts a day and grows without limit.
+// ⚠ The per-country rates that used to be quoted here are DELETED, not updated: a statistic in a
+// comment becomes a citation and then a lie. Derive it — the numbers above were re-measured off
+// state.json tonight and the previous ones were 20% low.
 // ⛔ But a CAP ALONE IS NOT THE ANSWER, and this is the part that is easy to get wrong: a cap
 // below the arrival rate does not reduce volume, it converts volume into SILENT LOSS. The
 // unposted ones queue, the queue grows every day, and rail 2 then drops each one when it turns 30
@@ -99,8 +99,26 @@ const COUNTRY_LABEL = POST_COUNTRIES === null ? 'every country' : POST_COUNTRIES
 // This replaces the old "runs until the next CPSC Thursday" divisor entirely: that existed to
 // spread one weekly batch, and a daily budget does the same job for any mix of sources without
 // knowing anybody's publishing calendar.
-const MAX_PER_RUN = 3;          // never more than this in a single run, whatever the budget says
-const INDIVIDUAL_PER_DAY = Number(argOf('--per-day', 3));
+// ⭐⭐ ONE PER RUN, NOT THREE — his correction, 2026-08-17: "should be a post every 4 hours, with a
+// nightly one that wraps up the rest from that day that were not posted?"
+// ⛔ THE OLD SHAPE WAS BUNCHING, AND HE SAW IT ON THE PAGE. `MAX_PER_RUN 3` with a 3/day budget
+// meant ONE run could spend the entire day's allowance: on 08-17 two posts went out THREE SECONDS
+// APART and the page then said nothing for the next seven hours. A daily budget controls how MANY
+// go out; it does nothing about WHEN, and a cap of 3 per run against a budget of 3 guarantees the
+// whole day can land in a single 4-hourly tick.
+// ⭐ The cadence knob is MAX_PER_RUN. At 1, the task's own 4h schedule IS the spacing — no pacing
+// arithmetic, no calendar knowledge, nothing to drift.
+// ⚠ RE-MEASURED TONIGHT off our own 357 records, because the 4.4/day in the previous version of
+// this comment was stale and low: last 14d = 5.9/day, last 28d = 5.3/day (US 57 · UK 42 · CA 31 ·
+// AU 17). Median day 4, busiest 25, and 6 of the last 28 days had NO recall at all.
+// 📖 So 6/day is matched to supply rather than aspiration — but a post every 4h is NOT guaranteed
+// and cannot be: on a median day there are 4 recalls, and on 6 days in 28 there were none. An
+// empty 4h slot is the FEED being quiet, not the cap biting. Anything above 6 on a batch day still
+// goes out in the nightly digest, so nothing is dropped.
+// ⚠ Overridable ONLY so check-fb-post.mjs can drive the budget and digest scenarios, which are
+// about HOW MANY go out and are independent of the spacing. Production passes nothing.
+const MAX_PER_RUN = Number(argOf('--max-per-run', 1));   // one per 4-hourly run = the spacing
+const INDIVIDUAL_PER_DAY = Number(argOf('--per-day', 6));   // six runs a day
 // The last scheduled run of the day. The task fires every 4h from 15:19, so the final run before
 // midnight lands at 23:19; anything from 20:00 counts. ⚠ It is "the first run after this hour that
 // has not already digested today", not "the 23:19 run" — a missed run must not cost a whole day's
