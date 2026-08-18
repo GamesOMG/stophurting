@@ -802,7 +802,7 @@ const HEAD_TAGS = [
   // template reaches the GENERATED pages and misses the hand-written homepage — which is the only
   // page Pinterest actually looks at. The sweep covers both, and the matcher lets Pinterest
   // re-issue the token later without leaving two of them on the page.
-  ['<meta name="p:domain_verify" content="99a14904bcb6a1e254d1ed2687b653f1">',
+  ['<meta name="p:domain_verify" content="99a14904bcb6a1e254d1ed2687b653f1"/>',
     /<meta name="p:domain_verify"[^>]*>/],
 ];
 
