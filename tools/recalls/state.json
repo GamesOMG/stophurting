@@ -4053,6 +4053,30 @@
    "models": "Char-Broil Patio Bistro BBQ Grills",
    "cat": "Electrical appliances equipment",
    "card": "/assets/img/recalls/char-broil-patio-bistro-bbq-grills-recall-2608-0120/card.webp"
+  },
+  "29c2a5fd-adc3-4656-ac5f-654028967a5a": {
+   "country": "au",
+   "slug": "pull-string-interactive-toys-recall",
+   "prod": "Pull String Interactive Toys",
+   "hazard": "serious injury or death from choking and asphyxiation",
+   "date": "2026-08-18",
+   "modified": "2026-08-18",
+   "num": "",
+   "models": " Pull string silicone sensory toy for infants in two styles: Dusty (SKU: 4236397) Jimmy (SKU: 4236484)",
+   "hash": "2ev-ix7cdi",
+   "img": "/assets/img/recalls/pull-string-interactive-toys-recall/1.webp"
+  },
+  "9ea0316e-5d0b-42fe-a076-af8625a36ec0": {
+   "country": "au",
+   "slug": "playground-plus-box-4-play-with-purpose-10-recall",
+   "prod": "Playground Plus Box 4: Play With Purpose 10-12m toy box",
+   "hazard": "serious injury or death from choking and asphyxiation",
+   "date": "2026-08-18",
+   "modified": "2026-08-18",
+   "num": "",
+   "models": " Pull string tentacle silicone sensory toy from the Play With Purpose set. Only the pull string tentacle silicone toy is affected in the set. SKU: 1011414",
+   "hash": "2je-1bf9snl",
+   "img": "/assets/img/recalls/playground-plus-box-4-play-with-purpose-10-recall/1.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
