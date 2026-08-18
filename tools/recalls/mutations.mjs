@@ -17,7 +17,7 @@
 // adapter, not a gate:
 //     node tools/recalls/mutations.mjs
 
-import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -259,8 +259,11 @@ const MUTATIONS = [
     name: 'the broken post no longer fails the run',
     file: 'fb-post.mjs',
     suite: 'check-fb-post.mjs',
-    find: 'needs deleting and re-posting`);\n      process.exitCode = 1;',
-    replace: 'needs deleting and re-posting`);',
+    // ⚠ Re-anchored: the message it used to key on was reworded the same day, splitting the
+    // wrong-card and no-card wordings apart. The exit code is the thing under test, so anchor on
+    // the line that sets it plus just enough above it to be unique.
+    find: 'is worth re-posting for`);\n      process.exitCode = 1;',
+    replace: 'is worth re-posting for`);',
     expect: 'a-404-card-gets-a-comment-and-fails-the-run',
     why: 'exiting 0 is how Task Scheduler reported success for seven hours while the page was wrong',
   },
@@ -273,6 +276,64 @@ const MUTATIONS = [
     expect: 'the 404 detector still matches the real 404 page',
     why: 'a detector that matches nothing reads exactly like a detector finding nothing wrong',
   },
+
+  // ── the email alerter ─────────────────────────────────────────────────────────────────────
+  // ⛔ This module emails Jason's real inbox from an unattended job. It had no harness at all
+  // until the day it was wired up, and the first thing its suite did was catch a bug in the fix.
+  {
+    name: 'the blip rule removed — one sighting mails',
+    file: 'alert.mjs',
+    suite: 'check-alert.mjs',
+    find: '} else if (state.pending?.[k]) {',
+    replace: '} else if (true) {',
+    expect: 'a problem seen ONCE is held back',
+    why: 'one dropped connection on a 4-hourly job would mail "broken" then "recovered" — the shape that teaches an inbox to filter you',
+  },
+  {
+    name: 'recovery computed from the wrong set',
+    file: 'alert.mjs',
+    suite: 'check-alert.mjs',
+    find: 'const cleared = Object.keys(state.open).filter((k) => !current.has(k));',
+    replace: 'const cleared = Object.keys(state.open).filter((k) => !state.pending?.[k]);',
+    expect: 'an UNCHANGED problem is never reported as recovered',
+    why: 'this is the measured original defect — it told him a dead feed was fine, six times a day',
+  },
+  {
+    name: 'the state write throws again',
+    file: 'alert.mjs',
+    suite: 'check-alert.mjs',
+    find: '  } catch (e) {\n    console.log(`   ✉ alert state not saved',
+    replace: '  } catch (e) {\n    throw e;\n    console.log(`   ✉ alert state not saved',
+    expect: 'an unwritable state file does not throw out of reportHealth',
+    why: 'build.mjs awaits this at top level, so a locked state file would mail him and then kill the run it was describing',
+  },
+  {
+    name: 'state shape no longer validated',
+    file: 'alert.mjs',
+    suite: 'check-alert.mjs',
+    find: "      open: s.open && typeof s.open === 'object' ? s.open : {},",
+    replace: '      open: s.open,',
+    expect: 'a state file holding {} is survived',
+    why: 'a file that parses but has no `open` threw a TypeError on a HEALTHY run — the alerter killing the build on a good day',
+  },
+  {
+    name: 'a problem is marked reported even though no mail went out',
+    file: 'alert.mjs',
+    suite: 'check-alert.mjs',
+    find: "    if (!sent) { persist({ open: state.open, pending: stillPending }); return { mailed: false, reason: 'no-credential' }; }",
+    replace: "    if (!sent) { persist({ open: nextOpen, pending: nextPending }); return { mailed: false, reason: 'no-credential' }; }",
+    expect: 'does NOT record the problem as reported',
+    why: 'the backlog waiting for Jason to write the credential file would be silently adopted and never sent',
+  },
+  {
+    name: 'one incident\'s postmortem welded back into every event',
+    file: 'alert.mjs',
+    suite: 'check-alert.mjs',
+    find: "    ...(why.length ? ['', ...why] : []),",
+    replace: "    ...(why.length ? ['', ...why] : []), '', 'A post whose card scraped the 404 page cannot be repaired in place — delete the post.',",
+    expect: 'reportEvent carries no explanation it was not given',
+    why: 'an explanation that is only sometimes true tells him to go and do the wrong thing',
+  },
 ];
 
 let caught = 0;
@@ -284,6 +345,12 @@ for (const m of MUTATIONS) {
   const dir = mkdtempSync(path.join(tmpdir(), 'sh-mut-'));
   try {
     cpSync(HERE, dir, { recursive: true, filter: (s) => !s.includes('node_modules') });
+    // node_modules is skipped because copying sharp per mutation is unbearable — but ESM ignores
+    // NODE_PATH, and a temp dir has no ancestor holding the deps, so any suite that imports one
+    // (check-alert.mjs needs nodemailer) would fail on EVERY mutation for a reason that has
+    // nothing to do with the mutation. A junction needs no elevation on Windows.
+    try { symlinkSync(path.join(HERE, 'node_modules'), path.join(dir, 'node_modules'), 'junction'); }
+    catch { /* suites that need a dependency will say so themselves */ }
     const target = path.join(dir, m.file);
     const src = readFileSync(target, 'utf8');
     if (!src.includes(m.find)) {

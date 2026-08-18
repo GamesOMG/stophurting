@@ -72,6 +72,32 @@ const COMMIT = process.argv.includes('--commit');
 const sinceIdx = process.argv.indexOf('--since');
 const DEFAULT_WINDOW_DAYS = 45; // rolling fetch window for the cron; --since overrides
 
+// ⛔⛔ A CRASH IS THE LOUDEST FAILURE AND IT WAS THE ONLY SILENT ONE. The health block that mails
+// sits near the END of this file, so anything throwing before it takes the process down and
+// leaves a stack trace in a log nobody opens, a non-zero Last Run Result nobody checks, and an
+// empty inbox — the same silence that let four jobs sit dead for twelve days. "The pipeline is
+// completely dead" must not be the one state that says nothing.
+// ⚠ Registering a handler for uncaughtException stops Node exiting immediately, which is what
+// buys the event loop long enough to finish an async send; we then exit 1 ourselves so Task
+// Scheduler still records a failure.
+let crashReported = false;
+for (const ev of ['uncaughtException', 'unhandledRejection']) {
+  process.on(ev, async (err) => {
+    if (crashReported) return;      // a throw inside the handler must not mask the original
+    crashReported = true;
+    console.error(`\n🔴 ${ev} — the recall build died before it could check its own health:\n${String(err?.stack || err).split('\n').slice(0, 5).join('\n')}`);
+    try {
+      const { reportEvent } = await import('./alert.mjs');
+      await reportEvent('stophurting: the recall build CRASHED', [`${ev}: ${String(err?.message || err)}`], {
+        commit: COMMIT,
+        why: ['Nothing was published on this run, and no feed was checked past the point of the',
+          'crash. The stack trace is in run.log.'],
+      });
+    } catch { /* the alerter failing must never be the last word of a crash report */ }
+    process.exit(1);
+  });
+}
+
 const state = existsSync(STATE_FILE)
   ? JSON.parse(readFileSync(STATE_FILE, 'utf8'))
   : { seen: {}, indexnowKey: '' };
@@ -97,7 +123,13 @@ async function mirrorImage(rec, slug) {
   if (!src) return null;
   const dir = path.join(ROOT, 'assets', 'img', 'recalls', slug);
   const rel = `/assets/img/recalls/${slug}/1.webp`;
-  const relRaw = `/assets/img/recalls/${slug}/1${path.extname(new URL(src).pathname) || '.png'}`;
+  // ⚠ OUTSIDE the try below, and `new URL()` THROWS on a relative or malformed src. A regulator
+  // publishing one bad image URL would take the whole unattended run down — before the health
+  // block that is supposed to report it. An extension we cannot read is worth a default, not a
+  // dead build.
+  let ext = '.png';
+  try { ext = path.extname(new URL(src).pathname) || '.png'; } catch { /* not a URL we can parse */ }
+  const relRaw = `/assets/img/recalls/${slug}/1${ext}`;
   const caption = rec.image.caption || '';
   for (const r of [rel, relRaw]) {
     const onDisk = path.join(ROOT, r.slice(1).split('/').join(path.sep));
@@ -1036,7 +1068,16 @@ for (const country of TARGETS) {
     // live posts: "the uk card looks weak, the us one looks nice." Generated only when there is no
     // real photo, and used as the og:image ONLY — never as a product figure on the page and never
     // on the hub, because it is typography rather than a picture of the item.
-    const card = img ? null : await renderCard(sharp, rec, ROOT);
+    // ⚠ card-image.mjs contains no try/catch of its own, so a sharp failure or a full disk here
+    // rejects straight out of the top level and kills the run 80-odd lines before the health block
+    // that would have mailed about it — "the pipeline is completely dead" being exactly the state
+    // that must not be the silent one. A record with no card still publishes; it just has no
+    // og:image, which mirrorImage already treats as survivable.
+    let card = null;
+    if (!img) {
+      try { card = await renderCard(sharp, rec, ROOT); }
+      catch (e) { failures.push(`share card failed for ${rec.slug}: ${e.message}`); }
+    }
     const prev = state.seen[rec.id];
     // Stamp WHEN WE CORRECTED IT, separately from the regulator's own revision marker — the
     // corrections page sorts on ours, because that is the order a reader needs to see changes in.
@@ -1083,7 +1124,12 @@ for (const country of TARGETS) {
     const limit = src.quietDays ?? 30;
     const bad = quiet > limit;
     console.log(`  ${c.toUpperCase()}  newest ${last || '(none)'}  ${quiet === Infinity ? '—' : `${quiet}d ago`}  (alarm at ${limit}d) ${bad ? '🔴 STALE' : '✓'}`);
-    if (bad) failures.push(`${c.toUpperCase()} has published nothing for ${quiet} days (expected within ${limit})`);
+    // ⚠ Keep the first three words stable whatever the shape — alert.mjs keys an alarm on them, so
+    // "AU has published" must mean the same alarm whether we have records for AU or none at all.
+    // (Without the second branch a country with zero records mailed "nothing for Infinity days".)
+    if (bad) failures.push(last
+      ? `${c.toUpperCase()} has published nothing for ${quiet} days (expected within ${limit})`
+      : `${c.toUpperCase()} has published nothing we have EVER recorded (expected within ${limit} days)`);
   }
 }
 
@@ -1092,6 +1138,33 @@ if (failures.length) {
   for (const f of failures) console.error(`   · ${f}`);
   console.error('   Task Scheduler will show a non-zero Last Run Result for this.');
   process.exitCode = 1;   // ⛔ so "success" in Task Scheduler means it actually succeeded
+}
+
+// ⛔⛔ AND TELL SOMEBODY. A non-zero exit code and a red line in run.log are both true and both
+// silent: this task runs unattended six times a day and nobody opens either. His ask, verbatim:
+// "email me at admin@stophurting.org if something breaks." alert.mjs was written for exactly this,
+// swept into an automated commit, and imported by NOTHING until now — so the alarm that was
+// supposed to catch a dead feed had itself never once run.
+//
+// ⚠ CALLED ON EVERY RUN, INCLUDING CLEAN ONES, and that is not an oversight: reportHealth mails
+// once when a problem CLEARS, and the only way it can notice is by being handed the empty list.
+// Tucking this inside the `if (failures.length)` above would give him alarms that open and never
+// close — the shape that teaches you to ignore an inbox.
+//
+// ⛔ BUT NEVER ON A PARTIAL RUN. The fetch loop walks TARGETS, so `--country us` produces feed
+// failures for the US alone; a genuine, still-open "UK feed failed:" would simply be ABSENT from
+// `failures`, and absence is precisely how reportHealth spells "recovered". A run that did not
+// look at something must not be allowed to declare it fixed. The freshness alarms above are safe
+// either way (they walk COUNTRIES, the whole registry) — it is the feed-failure alarms that are
+// scoped to the run, and one unsafe input is enough to disqualify the call.
+//
+// ⚠ MUST STAY ABOVE the `process.exit` below, which returns early on a quiet dry run — the exact
+// case where "everything recovered" needs saying.
+if (COUNTRY_ARG === 'all') {
+  const { reportHealth } = await import('./alert.mjs');
+  await reportHealth(failures, { commit: COMMIT });
+} else {
+  console.error(`   (--country ${COUNTRY_ARG}: not mailing — a partial run must not clear an alarm it never checked)`);
 }
 
 // 🪤 `process.exit(0)` OVERRIDES a `process.exitCode` set earlier — so this line silently threw

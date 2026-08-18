@@ -494,7 +494,13 @@ async function main() {
     const att = await graph(`/${r.data.id}`, { fields: 'attachments{url,media_type,title}', access_token: pageToken });
     const got = att.ok ? att.data.attachments?.data?.[0] : null;
     const wrongCard = !!got && NOT_FOUND_TITLE.test(got.title || '');
-    const noCard = !att.ok || !(att.data.attachments?.data?.length);
+    // ⚠ "WE COULD NOT READ IT BACK" IS NOT "FACEBOOK RENDERED NOTHING." These were one condition,
+    // so a failed read-back — and graph() returns !ok for any Meta error object, on a call this
+    // file's own comment says answers 200-with-an-error often enough that status alone lies —
+    // was reported as a missing card, commented a URL onto a post that may already carry a
+    // perfectly good one, and mailed him about it. Unknown is its own answer.
+    const unreadable = !att.ok;
+    const noCard = att.ok && !(att.data.attachments?.data?.length);
     if (wrongCard) console.log('   │ 🔴 the card scraped our 404 page — the URL was not live when Facebook fetched it');
     if (noCard || wrongCard) {
       const c = await graph(`/${r.data.id}/comments`, { message: link, access_token: pageToken }, 'POST');
@@ -505,7 +511,18 @@ async function main() {
         : `   │ 🔴 ${wrongCard ? 'wrong' : 'no'} link card AND the comment failed (${c.error}) — THIS POST HAS NO LINK`);
       // ⭐ The post is live and cannot be repaired in place, so this needs a human. Saying so in a
       // log nobody reads is what let it stand for seven hours.
-      problems.push(`${rec.slug}: facebook rendered ${wrongCard ? 'our 404 page' : 'no card'} — post ${r.data.id} needs deleting and re-posting`);
+      problems.push(wrongCard
+        ? `${rec.slug}: facebook rendered our 404 page — post ${r.data.id} must be DELETED and re-posted (the preview is snapshotted at creation and never re-renders)`
+        : `${rec.slug}: facebook rendered no link card — post ${r.data.id} has the URL in a comment; check whether the card is worth re-posting for`);
+      process.exitCode = 1;
+    }
+    // Unknown is reported, never guessed at. We do not comment (the post may already carry a good
+    // card, and a duplicate URL under a correct post is its own small mess) and we do not claim
+    // the card rendered either — `fb-verify-post.mjs` reads the post back on demand.
+    if (unreadable) {
+      card = 'UNVERIFIED';
+      console.log(`   │ ⚠ could not read the post back (${att.error}) — the card is UNKNOWN, not confirmed`);
+      problems.push(`${rec.slug}: post ${r.data.id} published but its card could not be read back (${att.error}) — run fb-verify-post.mjs`);
       process.exitCode = 1;
     }
 
@@ -558,7 +575,14 @@ async function main() {
   }
   if (problems.length) {
     const { reportEvent } = await import('./alert.mjs');
-    await reportEvent(`stophurting: ${problems.length} facebook post(s) shipped without a working link`, problems, { commit: COMMIT });
+    await reportEvent(`stophurting: ${problems.length} facebook post(s) shipped without a working link`, problems, {
+      commit: COMMIT,
+      why: [
+        'Facebook snapshots a post\'s link preview when the post is created and does not re-render',
+        'it, so a card that scraped the 404 page cannot be repaired in place. Deleting the post and',
+        'publishing it again is the only fix, which is why this one needs a person.',
+      ],
+    });
   }
 }
 

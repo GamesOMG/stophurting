@@ -11,3 +11,4 @@ tools/recalls/node_modules/
 # regenerable binaries to the repo for no reader benefit.
 assets/img/pins/
 tools/recalls/run.log
+tools/recalls/alert-state.json
