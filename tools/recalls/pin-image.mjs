@@ -23,6 +23,7 @@
 import { readFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { sourceFor } from './sources.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -91,7 +92,7 @@ function overlay(rec, BAND_Y) {
   <text x="60" y="${H - 52}" font-family="Segoe UI, Arial, sans-serif" font-size="28"
         font-weight="700" letter-spacing="1" fill="${ORANGE}">stophurting.org</text>
   <text x="${W - 60}" y="${H - 52}" text-anchor="end" font-family="Segoe UI, Arial, sans-serif"
-        font-size="24" fill="#8494a7">Official CPSC notice</text>
+        font-size="24" fill="#8494a7">Source: ${sourceFor(rec.country || 'us').agencyShort}</text>
 </svg>`);
 }
 
