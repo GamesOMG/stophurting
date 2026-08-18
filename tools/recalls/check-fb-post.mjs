@@ -375,7 +375,19 @@ async function runPublish(name, mode, assert, opts = {}) {
   let out, code = 0;
   try {
     const r = await execFileAsync(process.execPath, [SCRIPT, '--commit', '--pause', '0', '--live-tries', '2', '--live-wait', '50', ...(opts.args || [])], {
-      env: { ...process.env, SH_STATE_FILE: stateFile, SH_FB_STATE_FILE: fbFile, SH_FB_TOKEN_FILE: tokFile, SH_FB_GRAPH_BASE: base, SH_ORIGIN: base },
+      // ⛔⛔ AND THE HEARTBEAT SEAM, WHICH I MISSED FOR ONE COMMIT. These scenarios run the real
+      // script with --commit, so the moment fb-post gained a heartbeat the suite began POSTING TO
+      // THE PRODUCTION BOARD — using the real dash token, from the pre-commit hook. Jason's board
+      // read "3 posted this run · 7 total", which is not production: it is the digest fixture's
+      // seven recalls, exactly. A test that writes to the monitoring system makes the monitoring
+      // system lie, and it lies in the most convincing possible way — with plausible numbers.
+      // 📖 EVERY outbound seam a script gains needs redirecting here THE SAME DAY it is added.
+      env: {
+        ...process.env,
+        SH_STATE_FILE: stateFile, SH_FB_STATE_FILE: fbFile, SH_FB_TOKEN_FILE: tokFile,
+        SH_FB_GRAPH_BASE: base, SH_ORIGIN: base,
+        SH_WATCHTOWER: base, SH_DASH_TOKEN: 'FIXTURE-NOT-A-REAL-TOKEN',
+      },
       encoding: 'utf8',
       timeout: 15000,
     });
