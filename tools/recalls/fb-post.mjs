@@ -565,25 +565,41 @@ async function main() {
   // ⛔⛔ AND TELL SOMEBODY. This is the half that was missing: the 404 card WAS detected, printed
   // and recorded on 2026-08-17, the run exited 0, and the first human to know was Jason looking at
   // the page seven hours later. A correct signal into a log nobody reads is not a signal.
-  // ⚠ alert.mjs was written for exactly this, committed by an automated run, and imported by
-  // nothing — so it had never once fired. It de-duplicates and stays quiet when there is nothing
-  // wrong; with no SMTP credential on the box it says so and does nothing, which is why calling it
-  // unconditionally is safe.
+  // ⭐ IT REPORTS TO THE BOARD, not to an inbox — an email can only be sent by a run that happens,
+  // and the failure worth catching includes "this poster stopped running at all".
   if (problems.length) {
     console.error(`\n🔴 ${problems.length} POST(S) NEED A HUMAN:`);
     for (const p of problems) console.error(`   · ${p}`);
   }
-  if (problems.length) {
-    const { reportEvent } = await import('./alert.mjs');
-    await reportEvent(`stophurting: ${problems.length} facebook post(s) shipped without a working link`, problems, {
-      commit: COMMIT,
-      why: [
-        'Facebook snapshots a post\'s link preview when the post is created and does not re-render',
-        'it, so a card that scraped the 404 page cannot be repaired in place. Deleting the post and',
-        'publishing it again is the only fix, which is why this one needs a person.',
-      ],
-    });
-  }
+  HB.ok = problems.length === 0;
+  HB.detail = problems.length
+    ? problems[0]                                    // the first one names the post that needs deleting
+    : `${published} posted this run · ${Object.keys(posted).length} total, all cards verified`;
 }
 
-await main();
+// ⛔⛔ THE HEARTBEAT LIVES OUT HERE, NOT INSIDE main(), AND THAT IS THE WHOLE POINT.
+// main() returns early on a quiet run — no candidates, nothing to post — which is MOST runs. A
+// heartbeat inside it would therefore fire only on the rare days something was published, the row
+// would go stale on every ordinary day, and the board would cry wolf until he stopped reading it.
+// Silence is what this board alarms on, so the liveness signal has to survive every exit path.
+// ⛔ ITS OWN ROW, separate from the feed build: they are two ACTIONS of one Windows task and Task
+// Scheduler keeps only the LAST action's exit code, so a dead feed is masked by a clean poster
+// run. One integer cannot represent two jobs; two rows can.
+const HB = { ok: true, detail: 'ran, nothing due to post' };
+try {
+  await main();
+} catch (e) {
+  // A crash must reach the board as a failure rather than as silence.
+  HB.ok = false;
+  HB.detail = `CRASHED — ${String(e && e.message || e)}`;
+  process.exitCode = 1;
+  console.error(e);
+}
+const { beat } = await import('./heartbeat.mjs');
+await beat('stophurting-fb', {
+  name: 'stophurting · recalls to Facebook',
+  ok: HB.ok,
+  detail: HB.detail,
+  expectHours: 5,           // the task fires every 4h: one miss warns, two err
+  commit: COMMIT,
+});

@@ -1,3 +1,18 @@
+// ⛔⛔ DORMANT BY DESIGN SINCE 2026-08-17 — NOTHING CALLS THIS, AND THAT IS DELIBERATE.
+// Superseded by heartbeat.mjs, which reports to the watchtower board instead of emailing.
+// ⛔ DO NOT RE-WIRE IT because it looks orphaned. It looked orphaned once before and the correct
+// reading was "never finished"; this time it is "finished, then replaced", for two reasons:
+//   1. AN EMAIL CAN ONLY BE SENT BY A RUN THAT HAPPENS. Disable the task, sleep the machine, or
+//      die before node loads and there is no mail AND no signal — the exact failure that hid four
+//      jobs for twelve days. The board alarms on ABSENCE, which is strictly stronger.
+//   2. Jason asked for a PAGE, in his words: "when I open my browser, its in my face, what
+//      shipped, what is green, what is red." Email delivers somewhere he did not ask for.
+// It also needed a Zoho app password that was never written, so it never sent a single message.
+// ⭐ KEPT, not deleted: it is complete and has 26 assertions behind it (check-alert.mjs, in the
+// gate), so it is one import away if a second channel is ever wanted — a real fallback rather than
+// a rewrite. ⚠ If it is still uncalled in a month, delete it; two alerting paths is how one rots.
+//
+// ── original header ────────────────────────────────────────────────────────────────────────────
 // Emails admin@stophurting.org when the unattended pipeline breaks.
 //
 // ⭐ WHY. The 4-hourly task runs with nobody watching. It now exits non-zero and writes run.log

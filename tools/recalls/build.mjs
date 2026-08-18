@@ -87,11 +87,13 @@ for (const ev of ['uncaughtException', 'unhandledRejection']) {
     crashReported = true;
     console.error(`\n🔴 ${ev} — the recall build died before it could check its own health:\n${String(err?.stack || err).split('\n').slice(0, 5).join('\n')}`);
     try {
-      const { reportEvent } = await import('./alert.mjs');
-      await reportEvent('stophurting: the recall build CRASHED', [`${ev}: ${String(err?.message || err)}`], {
+      const { beat } = await import('./heartbeat.mjs');
+      await beat('stophurting-recalls', {
+        name: 'stophurting · recall feeds',
+        ok: false,
+        detail: `CRASHED — ${ev}: ${String(err?.message || err)}`,
+        expectHours: 5,
         commit: COMMIT,
-        why: ['Nothing was published on this run, and no feed was checked past the point of the',
-          'crash. The stack trace is in run.log.'],
       });
     } catch { /* the alerter failing must never be the last word of a crash report */ }
     process.exit(1);
@@ -1109,6 +1111,9 @@ for (const country of TARGETS) {
 // succeeds, and it simply returns nothing new because a field was renamed or a filter now matches
 // nothing. That failure is invisible to every check we have except this one: measured against our
 // own newest record per country, against a threshold each source declares from its own cadence.
+// Hoisted out of the block below: the heartbeat's detail line is the only thing he reads before
+// deciding whether to care, so it carries the real per-country ages rather than "all fine".
+const freshAge = {};
 {
   const today = new Date().toISOString().slice(0, 10);
   const newest = {};
@@ -1127,6 +1132,7 @@ for (const country of TARGETS) {
     // ⚠ Keep the first three words stable whatever the shape — alert.mjs keys an alarm on them, so
     // "AU has published" must mean the same alarm whether we have records for AU or none at all.
     // (Without the second branch a country with zero records mailed "nothing for Infinity days".)
+    freshAge[c] = last ? quiet : null;
     if (bad) failures.push(last
       ? `${c.toUpperCase()} has published nothing for ${quiet} days (expected within ${limit})`
       : `${c.toUpperCase()} has published nothing we have EVER recorded (expected within ${limit} days)`);
@@ -1141,30 +1147,37 @@ if (failures.length) {
 }
 
 // ⛔⛔ AND TELL SOMEBODY. A non-zero exit code and a red line in run.log are both true and both
-// silent: this task runs unattended six times a day and nobody opens either. His ask, verbatim:
-// "email me at admin@stophurting.org if something breaks." alert.mjs was written for exactly this,
-// swept into an automated commit, and imported by NOTHING until now — so the alarm that was
-// supposed to catch a dead feed had itself never once run.
+// silent: this task runs unattended six times a day and nobody opens either.
 //
-// ⚠ CALLED ON EVERY RUN, INCLUDING CLEAN ONES, and that is not an oversight: reportHealth mails
-// once when a problem CLEARS, and the only way it can notice is by being handed the empty list.
-// Tucking this inside the `if (failures.length)` above would give him alarms that open and never
-// close — the shape that teaches you to ignore an inbox.
+// ⭐ IT REPORTS TO THE BOARD, NOT TO AN INBOX — his call, and the better one for a reason worth
+// keeping: AN EMAIL CAN ONLY BE SENT BY A RUN THAT HAPPENS. Disable the task, sleep the machine,
+// or die before node loads and there is no mail and no signal at all. The watchtower alarms on
+// ABSENCE, so a pipeline that stops running goes stale on its own — which is exactly the failure
+// that hid four jobs for twelve days. It also needs no new credential.
 //
-// ⛔ BUT NEVER ON A PARTIAL RUN. The fetch loop walks TARGETS, so `--country us` produces feed
-// failures for the US alone; a genuine, still-open "UK feed failed:" would simply be ABSENT from
-// `failures`, and absence is precisely how reportHealth spells "recovered". A run that did not
-// look at something must not be allowed to declare it fixed. The freshness alarms above are safe
-// either way (they walk COUNTRIES, the whole registry) — it is the feed-failure alarms that are
-// scoped to the run, and one unsafe input is enough to disqualify the call.
+// ⚠ POSTED ON EVERY RUN, INCLUDING CLEAN ONES. A heartbeat is a liveness signal first: silence is
+// the alarm, so a healthy run must still say so or the row goes stale and cries wolf.
+//
+// ⛔ BUT A PARTIAL RUN MUST NOT REPORT HEALTHY. The fetch loop walks TARGETS, so `--country us`
+// produces feed failures for the US alone — a genuine, still-open UK failure is simply ABSENT, and
+// posting ok=1 off that would paint the board green over a dead feed. The freshness alarms are safe
+// either way (they walk COUNTRIES, the whole registry); it is the feed-failure half that is scoped
+// to the run, and one unsafe input disqualifies the whole report.
 //
 // ⚠ MUST STAY ABOVE the `process.exit` below, which returns early on a quiet dry run — the exact
-// case where "everything recovered" needs saying.
+// case where a liveness signal matters most, because nothing else about that run is visible.
 if (COUNTRY_ARG === 'all') {
-  const { reportHealth } = await import('./alert.mjs');
-  await reportHealth(failures, { commit: COMMIT });
+  const { beat } = await import('./heartbeat.mjs');
+  const fresh = COUNTRIES.map((c) => `${c.toUpperCase()} ${freshAge[c] ?? '?'}d`).join(' · ');
+  await beat('stophurting-recalls', {
+    name: 'stophurting · recall feeds',
+    ok: failures.length === 0,
+    detail: failures.length ? failures.join(' | ') : `4 feeds fresh — ${fresh}`,
+    expectHours: 5,          // the task fires every 4h: one miss warns, two err
+    commit: COMMIT,
+  });
 } else {
-  console.error(`   (--country ${COUNTRY_ARG}: not mailing — a partial run must not clear an alarm it never checked)`);
+  console.error(`   (--country ${COUNTRY_ARG}: not reporting — a partial run must not paint the board green over a feed it never checked)`);
 }
 
 // 🪤 `process.exit(0)` OVERRIDES a `process.exitCode` set earlier — so this line silently threw
