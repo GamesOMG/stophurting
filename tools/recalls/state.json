@@ -4089,6 +4089,18 @@
    "models": "MESOLAB Leaper Cute Anime Advent Calendar",
    "cat": "Toys",
    "card": "/assets/img/recalls/mesolab-leaper-cute-anime-advent-calendar-recall-2608-0024/card.webp"
+  },
+  "da00787c-fc73-4dae-b201-598b807ceae4": {
+   "country": "au",
+   "slug": "orbea-optima-asphalt-comfort-e-bikes-recall",
+   "prod": "ORBEA Optima Asphalt & Comfort e-bikes",
+   "hazard": "death, serious injury or property damage (including to other road users)",
+   "date": "2026-08-19",
+   "modified": "2026-08-19",
+   "num": "",
+   "models": " Optima step-through e-bikes in two models: Asphalt Comfort Affected models have a VIN containing SNKIN19A. Please see attached list of affected warranty numbers.",
+   "hash": "1yx-k342bt",
+   "img": "/assets/img/recalls/orbea-optima-asphalt-comfort-e-bikes-recall/1.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
