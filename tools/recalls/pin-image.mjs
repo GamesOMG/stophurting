@@ -96,11 +96,17 @@ function overlay(rec, BAND_Y) {
 </svg>`);
 }
 
-// 🪤 THE SOURCE IMAGE IS NOT ALWAYS CALLED 1.webp. The UK adapter writes `card.webp`, so a
-// hardcoded `1.webp` silently built NOTHING for the entire UK feed — measured 2026-08-23:
-// us 141, ca 104, au 32 all had 1.webp, and uk was 0 of 103. 27% of the feed, and the run
-// still exited 0 with a cheerful "skipped" count, because a skip and an outage look the same.
-const IMAGE_NAMES = ['1.webp', 'card.webp'];
+// ⛔⛔ DO NOT FALL BACK TO card.webp. It is a 1200x630 generated og:image BANNER, not a product
+// photo, and the UK adapter's own checks already refuse to letterbox it — "the hub keeps its
+// typographic tile; a 1200x630 banner letterboxed into a thumbnail is worse" (check-uk-adapter).
+// A 2:3 pin is a harsher letterbox than that tile, so this is the same mistake, larger. I shipped
+// that fallback on 2026-08-23 and it built 103 card-in-a-card UK pins before the adapter's own
+// test text said why it was wrong.
+// 📖 THE UK TRUTH IS SIMPLER AND WORSE: those notices have NO product image. The publisher does
+// not supply one and the adapter "reports no image rather than inventing one". So the UK feed
+// cannot produce a product pin at all, and the honest fix is to SAY SO every run rather than to
+// substitute something that merely looks like a picture.
+const IMAGE_NAMES = ['1.webp'];
 function sourceImage(slug) {
   for (const n of IMAGE_NAMES) {
     const p = path.join(ROOT, 'assets', 'img', 'recalls', slug, n);
@@ -176,8 +182,18 @@ for (const rec of items) {
 const line = Object.entries(byCountry)
   .map(([c, v]) => `${c} ${v.ok}/${v.total}`).join(' · ');
 console.log(`by country: ${line}`);
-const dead = Object.entries(byCountry).filter(([, v]) => v.total > 0 && v.ok === 0).map(([c]) => c);
+// A country at zero is only an OUTAGE if its records actually have product photos. UK sits at
+// zero legitimately — its publisher supplies no product image — so failing the run on that would
+// be a permanent red, and a permanent red is a gate people stop reading. Fail on a country that
+// HAS photos and still produced nothing; report the rest every run so a real zero is never quiet.
+const withPhotos = (c) => items.some((r) => (r.country || 'us').toLowerCase() === c && sourceImage(r.slug));
+const dead = Object.entries(byCountry)
+  .filter(([c, v]) => v.total > 0 && v.ok === 0 && withPhotos(c)).map(([c]) => c);
+const noPhotos = Object.entries(byCountry)
+  .filter(([c, v]) => v.total > 0 && v.ok === 0 && !withPhotos(c))
+  .map(([c, v]) => `${c} (${v.total} records, publisher supplies no product photo)`);
+if (noPhotos.length) console.log(`no pin possible: ${noPhotos.join(' · ')}`);
 if (dead.length && !ONLY) {
-  console.error(`\n✗ NO pins built for: ${dead.join(', ')} — a whole country at zero is an outage, not a skip.`);
+  console.error(`✗ NO pins built for: ${dead.join(', ')} — they HAVE product photos, so this is an outage.`);
   process.exit(1);
 }
