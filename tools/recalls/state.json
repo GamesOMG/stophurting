@@ -1474,6 +1474,83 @@
    "country": "us",
    "img": "/assets/img/recalls/hampton-bay-halwin-52-inch-ceiling-fans-recall-26702/1.webp"
   },
+  "10931": {
+   "country": "us",
+   "slug": "ktm-north-america-off-road-motorcycles-recall-26710",
+   "prod": "KTM North America Off-Road Motorcycles",
+   "hazard": "Serious Injury or Death from Crash hazard",
+   "date": "2026-08-20",
+   "modified": "2026-08-20",
+   "num": "26710",
+   "models": "",
+   "img": "/assets/img/recalls/ktm-north-america-off-road-motorcycles-recall-26710/1.webp"
+  },
+  "10932": {
+   "country": "us",
+   "slug": "modine-manufacturing-company-airedale-heating-and-cooling-ventilation-recall-26711",
+   "prod": "Modine Manufacturing Company Airedale Heating and Cooling Ventilation Fans",
+   "hazard": "Fire hazard",
+   "date": "2026-08-20",
+   "modified": "2026-08-20",
+   "num": "26711",
+   "models": "",
+   "img": "/assets/img/recalls/modine-manufacturing-company-airedale-heating-and-cooling-ventilation-recall-26711/1.webp"
+  },
+  "10933": {
+   "country": "us",
+   "slug": "goal-zero-yeti-3000x-power-stations-recall-26712",
+   "prod": "Goal Zero YETI 3000X Power Stations",
+   "hazard": "Injury from Fire and Burn hazard",
+   "date": "2026-08-20",
+   "modified": "2026-08-20",
+   "num": "26712",
+   "models": "",
+   "img": "/assets/img/recalls/goal-zero-yeti-3000x-power-stations-recall-26712/1.webp"
+  },
+  "10934": {
+   "country": "us",
+   "slug": "jinhezo-mini-waterproof-led-tea-lights-recall-26713",
+   "prod": "JINHEZO Mini Waterproof LED Tea Lights",
+   "hazard": "Serious Injury or Death from Battery Ingestion",
+   "date": "2026-08-20",
+   "modified": "2026-08-20",
+   "num": "26713",
+   "models": "",
+   "img": "/assets/img/recalls/jinhezo-mini-waterproof-led-tea-lights-recall-26713/1.webp"
+  },
+  "10935": {
+   "country": "us",
+   "slug": "koorlian-mattresses-recall-26714",
+   "prod": "Koorlian Mattresses",
+   "hazard": "Serious Injury or Death from Fire hazard",
+   "date": "2026-08-20",
+   "modified": "2026-08-20",
+   "num": "26714",
+   "models": "",
+   "img": "/assets/img/recalls/koorlian-mattresses-recall-26714/1.webp"
+  },
+  "10936": {
+   "country": "us",
+   "slug": "workbless-pressure-washers-recall-26715",
+   "prod": "Workbless Pressure Washers",
+   "hazard": "Serious Injury or Death from Shock and Electrocution hazard",
+   "date": "2026-08-20",
+   "modified": "2026-08-20",
+   "num": "26715",
+   "models": "",
+   "img": "/assets/img/recalls/workbless-pressure-washers-recall-26715/1.webp"
+  },
+  "10937": {
+   "country": "us",
+   "slug": "ccm-hockey-u-s-fmhvr-hybrid-visors-and-recall-26716",
+   "prod": "CCM Hockey U.S. FMHVR Hybrid Visors and ACCHVR Replacement Visor Accessories",
+   "hazard": "Injury from Laceration or Impact hazard",
+   "date": "2026-08-20",
+   "modified": "2026-08-20",
+   "num": "26716",
+   "models": "",
+   "img": "/assets/img/recalls/ccm-hockey-u-s-fmhvr-hybrid-visors-and-recall-26716/1.webp"
+  },
   "2b980a2c-b407-4488-af45-d8cce9c8650e": {
    "country": "au",
    "slug": "nevenka-baby-pull-string-giraffe-toy-recall",
@@ -1910,12 +1987,13 @@
    "country": "ca",
    "slug": "veggie-chips-broccoli-florets-cauliflower-recall-82462",
    "prod": "Veggie Chips (Broccoli Florets & Cauliflower)",
-   "hazard": "undeclared gluten",
-   "date": "2026-08-07",
-   "modified": "2026-08-07",
+   "hazard": "undeclared wheat",
+   "date": "2026-08-21",
+   "modified": "2026-08-21",
    "num": "82462",
    "models": "Veggie Chips (Broccoli Florets & Cauliflower) Brand Product Size UPC Code(s) Momchipz Veggie Chips (Broccoli Florets & Cauliflower) 85 g 6 28634 44216 6 Best Before: 2026 AUGUST 31",
-   "img": "/assets/img/recalls/veggie-chips-broccoli-florets-cauliflower-recall-82462/1.webp"
+   "img": "/assets/img/recalls/veggie-chips-broccoli-florets-cauliflower-recall-82462/1.webp",
+   "amendedAt": "2026-08-24"
   },
   "ca-82408": {
    "country": "ca",
@@ -4099,8 +4177,9 @@
    "modified": "2026-08-19",
    "num": "",
    "models": " Optima step-through e-bikes in two models: Asphalt Comfort Affected models have a VIN containing SNKIN19A. Please see attached list of affected warranty numbers.",
-   "hash": "1yx-k342bt",
-   "img": "/assets/img/recalls/orbea-optima-asphalt-comfort-e-bikes-recall/1.webp"
+   "hash": "1yz-ikrmbk",
+   "img": "/assets/img/recalls/orbea-optima-asphalt-comfort-e-bikes-recall/1.webp",
+   "amendedAt": "2026-08-24"
   },
   "ca-82500": {
    "country": "ca",
@@ -4135,6 +4214,108 @@
    "models": " Wearable hooded blanket in child and adult sizes.",
    "hash": "1zx-9022me",
    "img": "/assets/img/recalls/weet-bix-wearable-blanket-recall/1.webp"
+  },
+  "4a5eec70-9f42-4a93-8014-1b36f3a218a4": {
+   "country": "au",
+   "slug": "tea-infuser-recall",
+   "prod": "Tea infuser",
+   "hazard": "injury from cuts or scratches by the loose or raised section of the tea infuser when used",
+   "date": "2026-08-21",
+   "modified": "2026-08-21",
+   "num": "",
+   "models": " Tea infuser designed for use with Frank Green ceramic reusable cups and bottles 295ml and up. Product number: D21S30",
+   "hash": "214-1h7zd8e",
+   "img": "/assets/img/recalls/tea-infuser-recall/1.webp"
+  },
+  "1f51e2cc-eb6a-4e9f-ae31-52045147024b": {
+   "country": "au",
+   "slug": "babybee-toddler-board-with-detachable-seat-recall",
+   "prod": "Babybee toddler board with detachable seat",
+   "hazard": "serious injury to a child from a fall",
+   "date": "2026-08-21",
+   "modified": "2026-08-21",
+   "num": "",
+   "models": " The Babybee toddler board is a stroller accessory that can be used as a standing toddler board or with a detachable seat. Only the detachable seat is recalled. The toddler board itself is not affected. The toddler boards with the affected detachable seat have batch numbers X-001, X-002, X-012A and X-015D. These can be found on the underside of the toddler board.",
+   "hash": "2nx-3445za",
+   "img": "/assets/img/recalls/babybee-toddler-board-with-detachable-seat-recall/1.webp"
+  },
+  "ca-82509": {
+   "country": "ca",
+   "slug": "oversized-heightened-kids-walking-rehabilitation-walker-pediatric-gait-recall-82509",
+   "prod": "Oversized Heightened Kids Walking Rehabilitation Walker Pediatric Gait Training Aid Special Child Mobility Support Device",
+   "hazard": "Injury hazard",
+   "date": "2026-08-21",
+   "modified": "2026-08-21",
+   "num": "82509",
+   "models": "Oversized Heightened Kids Walking Rehabilitation Walker Pediatric Gait Training Aid Special Child Mobility Support Device A baby walker is an enclosed activity structure built to support a baby or young child in either a sitting or standing position so that their feet touch the floor. Walkers are mounted on wheels or a device that allows independent horizontal movement. This alert involves the “Ov",
+   "img": "/assets/img/recalls/oversized-heightened-kids-walking-rehabilitation-walker-pediatric-gait-recall-82509/1.webp"
+  },
+  "ca-82510": {
+   "country": "ca",
+   "slug": "baby-activity-walker-multi-functional-anti-drop-light-recall-82510",
+   "prod": "Baby Activity Walker Multi Functional Anti Drop Light Musical 8 Wheels Infant Activity Walker Rocker Light Purple",
+   "hazard": "Injury hazard",
+   "date": "2026-08-21",
+   "modified": "2026-08-21",
+   "num": "82510",
+   "models": "Baby Activity Walker Multi Functional Anti Drop Light Musical 8 Wheels Infant Activity Walker Rocker Light Purple A baby walker is an enclosed activity structure built to support a baby or young child in either a sitting or standing position so that their feet touch the floor. Walkers are mounted on wheels or a device that allows independent horizontal movement. This alert involves the “Baby Activ",
+   "img": "/assets/img/recalls/baby-activity-walker-multi-functional-anti-drop-light-recall-82510/1.webp"
+  },
+  "ca-82512": {
+   "country": "ca",
+   "slug": "muelodsic-multifunctional-walker-with-adjustable-height-and-speed-recall-82512",
+   "prod": "MUELODSIC - Multifunctional Walker with Adjustable Height and Speed Push and Sit Learning Walker with Sunshade",
+   "hazard": "Injury hazard",
+   "date": "2026-08-21",
+   "modified": "2026-08-21",
+   "num": "82512",
+   "models": "MUELODSIC - Multifunctional Walker with Adjustable Height and Speed Push and Sit Learning Walker with Sunshade A baby walker is an enclosed activity structure built to support a baby or young child in either a sitting or standing position so that their feet touch the floor. Walkers are mounted on wheels or a device that allows independent horizontal movement. This alert involves the “MUELODSIC - M",
+   "img": "/assets/img/recalls/muelodsic-multifunctional-walker-with-adjustable-height-and-speed-recall-82512/1.webp"
+  },
+  "ca-82523": {
+   "country": "ca",
+   "slug": "seafood-medley-recall-82523",
+   "prod": "Seafood Medley",
+   "hazard": "undeclared egg, fish, soy, and wheat",
+   "date": "2026-08-21",
+   "modified": "2026-08-21",
+   "num": "82523",
+   "models": "Seafood Medley Brand Product Size UPC Codes Kim Phat Seafood Medley 500 g 6 28790 00196 2 Production Date: 25/08/16 Best Before Date: 27/08/15",
+   "img": "/assets/img/recalls/seafood-medley-recall-82523/1.webp"
+  },
+  "ca-82495": {
+   "country": "ca",
+   "slug": "mec-shuttlecraft-kid-carrier-recall-82495",
+   "prod": "MEC Shuttlecraft Kid Carrier",
+   "hazard": "potential fall hazard",
+   "date": "2026-08-20",
+   "modified": "2026-08-20",
+   "num": "82495",
+   "models": "MEC Shuttlecraft Kid Carrier This recall involves MEC Shuttlecraft kid carriers. The affected products are a deep navy colour with style number 6015493 and UPC 840251534745. Only units from purchase order 0707760 are affected. A purchase order tag can be found in the main lower pocket of the child carrier on the right-hand side of the compartment.",
+   "img": "/assets/img/recalls/mec-shuttlecraft-kid-carrier-recall-82495/1.webp"
+  },
+  "ca-82498": {
+   "country": "ca",
+   "slug": "workbless-electric-pressure-washers-recall-82498",
+   "prod": "Workbless Electric Pressure Washers",
+   "hazard": "electric shock hazard",
+   "date": "2026-08-20",
+   "modified": "2026-08-20",
+   "num": "82498",
+   "models": "Workbless Electric Pressure Washers This recall involves Workbless-branded pressure washers, models WB0301 and WB0302. Model WB0301 is green and black and measures about 27.24 inches (69 cm) high, 10.83 inches (27.5 cm) wide and 8.39 inches (21 cm) deep. “WORKBLESS”, \"WB0301” and “ELECTRIC PRESSURE WASHER” are printed on a label on the back of the pressure washer. Model WB0302 is also green and bl",
+   "img": "/assets/img/recalls/workbless-electric-pressure-washers-recall-82498/1.webp"
+  },
+  "uk-2608-0199": {
+   "country": "uk",
+   "slug": "sammic-portable-electric-liquidiser-recall-2608-0199",
+   "prod": "Sammic Portable Electric Liquidiser",
+   "hazard": "risk of electric shock",
+   "date": "2026-08-21",
+   "modified": "2026-08-21",
+   "num": "2608-0199",
+   "models": "Sammic Portable Electric Liquidiser",
+   "cat": "Electrical appliances equipment",
+   "card": "/assets/img/recalls/sammic-portable-electric-liquidiser-recall-2608-0199/card.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
