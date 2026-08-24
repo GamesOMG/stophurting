@@ -100,7 +100,7 @@ function overlay(rec, BAND_Y) {
 // photo, and the UK adapter's own checks already refuse to letterbox it — "the hub keeps its
 // typographic tile; a 1200x630 banner letterboxed into a thumbnail is worse" (check-uk-adapter).
 // A 2:3 pin is a harsher letterbox than that tile, so this is the same mistake, larger. I shipped
-// that fallback on 2026-08-23 and it built 103 card-in-a-card UK pins before the adapter's own
+// that fallback on 2026-08-24 and it built 103 card-in-a-card UK pins before the adapter's own
 // test text said why it was wrong.
 // 📖 THE UK TRUTH IS SIMPLER AND WORSE: those notices have NO product image. The publisher does
 // not supply one and the adapter "reports no image rather than inventing one". So the UK feed
