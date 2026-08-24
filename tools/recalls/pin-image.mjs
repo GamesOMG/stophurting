@@ -96,9 +96,22 @@ function overlay(rec, BAND_Y) {
 </svg>`);
 }
 
+// 🪤 THE SOURCE IMAGE IS NOT ALWAYS CALLED 1.webp. The UK adapter writes `card.webp`, so a
+// hardcoded `1.webp` silently built NOTHING for the entire UK feed — measured 2026-08-23:
+// us 141, ca 104, au 32 all had 1.webp, and uk was 0 of 103. 27% of the feed, and the run
+// still exited 0 with a cheerful "skipped" count, because a skip and an outage look the same.
+const IMAGE_NAMES = ['1.webp', 'card.webp'];
+function sourceImage(slug) {
+  for (const n of IMAGE_NAMES) {
+    const p = path.join(ROOT, 'assets', 'img', 'recalls', slug, n);
+    if (existsSync(p)) return p;
+  }
+  return null;
+}
+
 async function buildPin(rec) {
-  const src = path.join(ROOT, 'assets', 'img', 'recalls', rec.slug, '1.webp');
-  if (!existsSync(src)) return { slug: rec.slug, skipped: 'no product image' };
+  const src = sourceImage(rec.slug);
+  if (!src) return { slug: rec.slug, skipped: 'no product image' };
   const out = path.join(OUT_DIR, `${rec.slug}.jpg`);
   if (existsSync(out) && !FORCE) return { slug: rec.slug, skipped: 'exists' };
 
@@ -147,3 +160,24 @@ for (const rec of items) {
 }
 const have = existsSync(OUT_DIR) ? readdirSync(OUT_DIR).filter((f) => f.endsWith('.jpg')).length : 0;
 console.log(`\nbuilt ${built} · skipped ${skipped} · ${have} pin image(s) on disk`);
+
+// ⛔⛔ A WHOLE COUNTRY AT ZERO IS AN OUTAGE, NOT A SKIP — and it exited 0 for weeks.
+// The UK feed built nothing at all because its images are named card.webp and this script
+// only looked for 1.webp. Per-country totals make that visible, and a country with records
+// but no pins fails the run instead of reporting a tidy "skipped" number.
+// ⚠ Counted over the items ACTUALLY PROCESSED, so `--slug` runs cannot trip it.
+const byCountry = {};
+for (const rec of items) {
+  const c = (rec.country || 'us').toLowerCase();
+  byCountry[c] = byCountry[c] || { total: 0, ok: 0 };
+  byCountry[c].total++;
+  if (existsSync(path.join(OUT_DIR, `${rec.slug}.jpg`))) byCountry[c].ok++;
+}
+const line = Object.entries(byCountry)
+  .map(([c, v]) => `${c} ${v.ok}/${v.total}`).join(' · ');
+console.log(`by country: ${line}`);
+const dead = Object.entries(byCountry).filter(([, v]) => v.total > 0 && v.ok === 0).map(([c]) => c);
+if (dead.length && !ONLY) {
+  console.error(`\n✗ NO pins built for: ${dead.join(', ')} — a whole country at zero is an outage, not a skip.`);
+  process.exit(1);
+}
