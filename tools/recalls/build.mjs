@@ -1231,11 +1231,32 @@ if (WRITE) {
 }
 
 if (COMMIT && newUrls.length) {
-  execSync('git add -A', { cwd: ROOT });
-  execSync(`git commit -m "recalls: ${newUrls.length} new (auto)" -m "Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"`, { cwd: ROOT });
-  execSync('git push', { cwd: ROOT });
-  console.log(await indexNow(newUrls));
-  console.log(`pushed ${newUrls.length} new recall page(s)`);
+  // ⛔⛔ THE HEARTBEAT ALREADY WENT OUT GREEN ABOVE (the beat call ~50 lines up), and everything
+  // below here can still fail: a rejected push, a network drop, an IndexNow 4xx. Before this
+  // guard the board said "ok · N feeds fresh" while the pages never reached the site, and the
+  // only signal was Task Scheduler's exit code — which records just the LAST action of the task,
+  // so the poster's clean run masked it. That is the exact shape that hid four jobs for 12 days.
+  // ▶ Publish inside a try, and on failure RE-BEAT the same job with ok:false. The board is the
+  //   thing Jason opens; it must never carry a green row for a run that published nothing.
+  try {
+    execSync('git add -A', { cwd: ROOT });
+    execSync(`git commit -m "recalls: ${newUrls.length} new (auto)" -m "Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"`, { cwd: ROOT });
+    execSync('git push', { cwd: ROOT });
+    console.log(await indexNow(newUrls));
+    console.log(`pushed ${newUrls.length} new recall page(s)`);
+  } catch (e) {
+    const why = String((e && e.message) || e).split('\n')[0].slice(0, 80);
+    console.error(`PUBLISH FAILED after a green heartbeat: ${why}`);
+    const { beat: reBeat } = await import('./heartbeat.mjs');
+    await reBeat('stophurting-recalls', {
+      name: 'stophurting · recall feeds',
+      ok: false,
+      detail: `built ${newUrls.length} page(s) but PUBLISH FAILED: ${why}`,
+      expectHours: 5,
+      commit: COMMIT,
+    });
+    process.exitCode = 1;
+  }
 } else if (COMMIT) {
-  console.log('nothing new — no commit');
+  console.log('nothing new - no commit');
 }
