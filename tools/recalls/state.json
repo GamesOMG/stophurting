@@ -2946,15 +2946,16 @@
   },
   "uk-2608-0103": {
    "country": "uk",
-   "slug": "simple-730ml-kind-to-skin-micellar-cleansing-water-recall-2608-0103",
-   "prod": "Simple 730ml Kind to Skin Micellar Cleansing Water",
+   "slug": "simple-kind-to-skin-micellar-cleansing-water-200ml-recall-2608-0103",
+   "prod": "Simple Kind to Skin Micellar Cleansing Water 200ml, 400ml and 730ml",
    "hazard": "It has been identified that affected batches may be microbiologically contaminated, which…",
    "date": "2026-08-14",
-   "modified": "2026-08-14",
+   "modified": "2026-08-25",
    "num": "2608-0103",
-   "models": "Simple 730ml Kind to Skin Micellar Cleansing Water",
+   "models": "Simple Kind to Skin Micellar Cleansing Water 200ml, 400ml and 730ml",
    "cat": "Cosmetics",
-   "card": "/assets/img/recalls/simple-730ml-kind-to-skin-micellar-cleansing-water-recall-2608-0103/card.webp"
+   "card": "/assets/img/recalls/simple-kind-to-skin-micellar-cleansing-water-200ml-recall-2608-0103/card.webp",
+   "amendedAt": "2026-08-25"
   },
   "uk-2608-0008": {
    "country": "uk",
@@ -4316,6 +4317,29 @@
    "models": "Sammic Portable Electric Liquidiser",
    "cat": "Electrical appliances equipment",
    "card": "/assets/img/recalls/sammic-portable-electric-liquidiser-recall-2608-0199/card.webp"
+  },
+  "ca-82507": {
+   "country": "ca",
+   "slug": "manually-controlled-solar-shades-sana-recall-82507",
+   "prod": "Manually controlled solar shades - SANA",
+   "hazard": "strangulation hazard",
+   "date": "2026-08-24",
+   "modified": "2026-08-24",
+   "num": "82507",
+   "models": "Manually controlled solar shades - SANA This recall involves SANA brand manually controlled solar shades (with chains). The products were sold in a variety of sizes, colours, and fabrics.",
+   "img": "/assets/img/recalls/manually-controlled-solar-shades-sana-recall-82507/1.webp"
+  },
+  "uk-2602-0208": {
+   "country": "uk",
+   "slug": "sand-art-activity-kit-sold-via-ebay-and-recall-2602-0208",
+   "prod": "Sand Art Activity Kit sold via eBay and Amazon",
+   "hazard": "risk to health as the sand included in the set may be contaminated with a quantity of asb…",
+   "date": "2026-02-23",
+   "modified": "2026-08-25",
+   "num": "2602-0208",
+   "models": "Sand Art Activity Kit sold via eBay and Amazon",
+   "cat": "Hobby sports equipment",
+   "card": "/assets/img/recalls/sand-art-activity-kit-sold-via-ebay-and-recall-2602-0208/card.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
