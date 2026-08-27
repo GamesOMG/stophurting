@@ -4352,6 +4352,42 @@
    "models": "Apeks XL4, XL4+ and Ocea Regulator Second Stages",
    "cat": "Personal protective equipment ppe",
    "card": "/assets/img/recalls/apeks-xl4-xl4-and-ocea-regulator-second-stages-recall-2607-0132/card.webp"
+  },
+  "c09b530a-0353-4de5-8669-b2a29adcade3": {
+   "country": "au",
+   "slug": "basco-bfo-15671-oil-filter-for-diesel-engines-recall",
+   "prod": "Basco BFO-15671 oil filter for diesel engines",
+   "hazard": "death, serious injury or property damage (including to other road users) from an accident",
+   "date": "2026-08-27",
+   "modified": "2026-08-27",
+   "num": "",
+   "models": " Spin-on engine oil filter for diesel engines, sold as both a standalone part and as part of service kits. Suitable for the following vehicles: Isuzu D-Max (TFR/TFS series, 06/2012-2026) Isuzu MU-X (UCS85, 11/2013-06/2021) Isuzu MU-X (UCR40/UCS40, 07/2021-2026) Mazda BT50 (B30 TFR40/TFS40, 08/2020-2026) with 3.0L diesel 4JJ1-TCX or 4JJ3-TCX engines Standalone oil filter (sold at Basco Wholesale an",
+   "hash": "34h-hrkkj8",
+   "img": "/assets/img/recalls/basco-bfo-15671-oil-filter-for-diesel-engines-recall/1.webp"
+  },
+  "cbebee74-7cae-46ee-a637-ee192f0eeda6": {
+   "country": "au",
+   "slug": "gasgas-motocross-and-cross-country-motorbikes-my21-24-recall",
+   "prod": "GASGAS Motocross and Cross Country motorbikes (MY21-24)",
+   "hazard": "serious injury or death",
+   "date": "2026-08-27",
+   "modified": "2026-08-27",
+   "num": "",
+   "models": " Full-sized MX motocross and Cross Country models with BRAKTEC rear brake system. 2-stroke and 4-stroke models MC and EX models variants Model years 2021 – 2024 Please see attached list of affected VINs. These motorbikes are not road-registerable.",
+   "hash": "28z-1n4ol55",
+   "img": "/assets/img/recalls/gasgas-motocross-and-cross-country-motorbikes-my21-24-recall/1.webp"
+  },
+  "384751b0-e203-43f8-b86d-47b93cccc490": {
+   "country": "au",
+   "slug": "husqvarna-cross-country-dirt-bikes-recall",
+   "prod": "Husqvarna Cross Country dirt bikes",
+   "hazard": "serious injury or death",
+   "date": "2026-08-27",
+   "modified": "2026-08-27",
+   "num": "",
+   "models": " Cross Country dirt bikes with BRAKTEC rear brake system. Affected model variants: TX300 FX350 Model years 2022 – 2024 Please see attached list of affected VINs. These motorbikes are not road-registerable.",
+   "hash": "27r-1d2rtl5",
+   "img": "/assets/img/recalls/husqvarna-cross-country-dirt-bikes-recall/1.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
