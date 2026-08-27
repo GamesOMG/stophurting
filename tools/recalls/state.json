@@ -4388,6 +4388,40 @@
    "models": " Cross Country dirt bikes with BRAKTEC rear brake system. Affected model variants: TX300 FX350 Model years 2022 – 2024 Please see attached list of affected VINs. These motorbikes are not road-registerable.",
    "hash": "27r-1d2rtl5",
    "img": "/assets/img/recalls/husqvarna-cross-country-dirt-bikes-recall/1.webp"
+  },
+  "ca-82263": {
+   "country": "ca",
+   "slug": "xo-poppy-5000-mah-magsafe-powerbanks-recall-82263",
+   "prod": "XO Poppy 5000 mAH Magsafe Powerbanks",
+   "hazard": "fire hazard",
+   "date": "2026-08-26",
+   "modified": "2026-08-26",
+   "num": "82263",
+   "models": "XO Poppy 5000 mAH Magsafe Powerbanks This recall involves the XO Poppy Powerbank, Magsafe Compatible, 5000 mAh, in various colours and prints. A USB-C charging cable was included.",
+   "img": "/assets/img/recalls/xo-poppy-5000-mah-magsafe-powerbanks-recall-82263/1.webp"
+  },
+  "ca-82526": {
+   "country": "ca",
+   "slug": "various-godrej-aer-spray-recall-82526",
+   "prod": "Various Godrej Aer Spray",
+   "hazard": "improper labelling",
+   "date": "2026-08-26",
+   "modified": "2026-08-26",
+   "num": "82526",
+   "models": "Various Godrej Aer Spray This recall involves various Godrej Aer Spray. The product is sold in 6 different scent varieties and packed in a 300 ml pressurized metal container. The product was sold only at Walmart Canada.",
+   "img": "/assets/img/recalls/various-godrej-aer-spray-recall-82526/1.webp"
+  },
+  "uk-2608-0060": {
+   "country": "uk",
+   "slug": "cambridge-audio-yoyo-m-portable-bluetooth-speaker-recall-2608-0060",
+   "prod": "Cambridge Audio Yoyo (M) Portable Bluetooth Speaker",
+   "hazard": "risk of fire as the lithium-ion battery may overheat during use",
+   "date": "2026-08-27",
+   "modified": "2026-08-27",
+   "num": "2608-0060",
+   "models": "Cambridge Audio Yoyo (M) Portable Bluetooth Speaker",
+   "cat": "Communication media equipment",
+   "card": "/assets/img/recalls/cambridge-audio-yoyo-m-portable-bluetooth-speaker-recall-2608-0060/card.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
