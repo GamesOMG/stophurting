@@ -1903,6 +1903,50 @@
    "models": "",
    "img": "/assets/img/recalls/victgoal-bicycle-helmets-recall-26749/1.webp"
   },
+  "10973": {
+   "country": "us",
+   "slug": "zmc-group-expands-of-light-up-childrens-toys-recall-26766",
+   "prod": "ZMC Group Expands of Light-Up Children’s Toys",
+   "hazard": "Serious Injury or Death from Battery Ingestion",
+   "date": "2026-09-10",
+   "modified": "2026-09-10",
+   "num": "26766",
+   "models": "",
+   "img": "/assets/img/recalls/zmc-group-expands-of-light-up-childrens-toys-recall-26766/1.webp"
+  },
+  "10974": {
+   "country": "us",
+   "slug": "junkins-dhasuwt-hair-dryer-brushes-recall-26750",
+   "prod": "Junkins DHASUWT Hair Dryer Brushes",
+   "hazard": "Serious Injury or Death from Electrocution, and Shock hazard",
+   "date": "2026-09-10",
+   "modified": "2026-09-10",
+   "num": "26750",
+   "models": "",
+   "img": "/assets/img/recalls/junkins-dhasuwt-hair-dryer-brushes-recall-26750/1.webp"
+  },
+  "10975": {
+   "country": "us",
+   "slug": "sweet-cubby-childrens-loungewear-sets-recall-26752",
+   "prod": "Sweet Cubby Children's Loungewear Sets",
+   "hazard": "Serious Injury or Death from Burn hazard",
+   "date": "2026-09-10",
+   "modified": "2026-09-10",
+   "num": "26752",
+   "models": "",
+   "img": "/assets/img/recalls/sweet-cubby-childrens-loungewear-sets-recall-26752/1.webp"
+  },
+  "10976": {
+   "country": "us",
+   "slug": "https-www-cpsc-gov-recalls-2026-fjtjbsi-recalls-recall-26764",
+   "prod": "https://www.cpsc.gov/Recalls/2026/FJTJBSI-Recalls-Six-Drawer-Dressers-Due-to-Risk-of-Serious-Injury-or-Death-from-Tip-Over-and-Entrapment-Hazards-Violate-Mandatory-Standard-for-Clothing-Storage-Units",
+   "hazard": "The recalled dressers are unstable if they are not anchored to the wall, posing…",
+   "date": "2026-09-10",
+   "modified": "2026-09-10",
+   "num": "26764",
+   "models": "",
+   "img": "/assets/img/recalls/https-www-cpsc-gov-recalls-2026-fjtjbsi-recalls-recall-26764/1.webp"
+  },
   "2b980a2c-b407-4488-af45-d8cce9c8650e": {
    "country": "au",
    "slug": "nevenka-baby-pull-string-giraffe-toy-recall",
@@ -5085,6 +5129,18 @@
    "models": "Volta VT40IT Incline Treadmill",
    "cat": "Hobby sports equipment",
    "card": "/assets/img/recalls/volta-vt40it-incline-treadmill-recall-2608-0247/card.webp"
+  },
+  "uk-2609-0075": {
+   "country": "uk",
+   "slug": "fidlock-hermetic-dry-bag-recall-2609-0075",
+   "prod": "Fidlock Hermetic Dry Bag",
+   "hazard": "serious risk of injuries due to accessible small magnets",
+   "date": "2026-09-10",
+   "modified": "2026-09-10",
+   "num": "2609-0075",
+   "models": "Fidlock Hermetic Dry Bag",
+   "cat": "Hobby sports equipment",
+   "card": "/assets/img/recalls/fidlock-hermetic-dry-bag-recall-2609-0075/card.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
