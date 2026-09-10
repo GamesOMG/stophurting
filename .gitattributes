@@ -1,0 +1,42 @@
+# ⭐ LINE ENDINGS ARE PINNED HERE. Added 2026-09-10, after a commit in this repo printed CRLF
+# warnings on 16 files at once.
+#
+# WHY IT MATTERS HERE SPECIFICALLY. `core.autocrlf=true` on the dev machine, and with no rules at
+# all every file's endings were decided AT CHECKOUT: git wrote CRLF, our tools round-tripped
+# whatever was already there. So a working copy's endings recorded WHO TOUCHED IT LAST, not
+# anything about the file — which is how the same list went wrong three times in eight days in the
+# sibling repos. The two live exposures in THIS repo:
+#   · .githooks/pre-commit is extensionless and executed by name. A CRLF shebang dies with
+#     `set: -\r: invalid option`. That hook is the only thing standing between a bad upstream
+#     feed row and a published page — on 2026-09-10 it was what caught CPSC returning a database
+#     error as a recall, so it is not a file that may quietly stop working.
+#   · Every scripted edit anchors on line endings. An LF-anchored patch against a CRLF file
+#     matches single-line anchors and silently MISSES multi-line ones — a half-applied patch that
+#     looks like it worked.
+#
+# ⛔ ORDER MATTERS: for a given attribute the LAST matching pattern wins. Broad rule first,
+#    exceptions after it.
+# ⚠ THIS FILE CHANGES NOTHING ALREADY ON DISK. It was rolled out with `git add --renormalize .`
+#    in a clean tree — preferred over `git rm --cached -r . && git reset --hard`, which destroys
+#    uncommitted work with no reflog to recover it. Verify with `git ls-files --eol`, never by eye.
+
+* text=auto eol=lf
+
+# ⛔ FORCED `text`, NOT `text=auto` — the difference is whether the rule can be skipped.
+# git's heuristic calls a file BINARY if it holds a NUL or a lone CR, and `text=auto` then stores
+# the bytes verbatim. These are executed or served by name, so they must be LF unconditionally.
+.githooks/* text eol=lf
+*.sh text eol=lf
+_redirects text eol=lf
+
+# Windows-side tooling stays CRLF. None exists here yet; the rule is here so the first one added
+# is right on arrival rather than after it breaks.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Images are binary — never touch the bytes. 450 webp / 26 png / 6 jpg as of this commit, all
+# recall product photos fetched from upstream.
+*.webp -text
+*.png -text
+*.jpg -text
