@@ -689,7 +689,35 @@ export const SOURCES = {
     async fetch({ since }) {
       const res = await fetch(`https://www.saferproducts.gov/RestWebServices/Recall?format=json&RecallDateStart=${since}`);
       if (!res.ok) throw new Error(`CPSC feed HTTP ${res.status}`);
-      return (await res.json()).map(usToCanonical);
+      // ⛔⛔ CPSC ANSWERS 200 WITH ITS OWN DATABASE ERROR IN THE PRODUCT FIELD. Measured
+      // 2026-09-10: a row came back reading "Error retrieving : The underlying provider failed on
+      // Open." — a .NET/Entity Framework message — with no RecallNumber and no RecallDate. It was
+      // ingested as a recall, got the slug `…-recall-null`, generated a page directory and a card
+      // on us/recalls/index.html pointing at an image that was never going to exist.
+      // 🔴 WHAT IT COST: `dead-refs` (correctly) failed the pre-commit over the missing asset, so
+      // `git commit` died, EIGHT REAL RECALL PAGES never published, 126 files sat staged, and the
+      // heartbeat went err. One garbage row from upstream stopped the whole day's publish.
+      // ⭐ THE RULE IS STRUCTURAL, NOT A STRING MATCH: a recall is identified by its NUMBER and its
+      // DATE. Without both it is not a recall record, whatever the text says — so this also catches
+      // the next error message, which will be worded differently.
+      // ⚠ AND IT IS NOT A SILENT FILTER, because that is its own trap: each drop is named, and if
+      // EVERY row is dropped it throws. One bad row is upstream having a bad day; all of them
+      // means the feed shape changed under us, and quietly reporting "0 new recalls" would look
+      // exactly like a quiet week.
+      const raw = await res.json();
+      const good = raw.filter((r) => r && r.RecallNumber && r.RecallDate);
+      const dropped = raw.length - good.length;
+      if (dropped) {
+        for (const r of raw.filter((r) => !(r && r.RecallNumber && r.RecallDate))) {
+          console.warn(`[us] DROPPED a row with no RecallNumber/RecallDate: `
+            + `${String(r?.Title || r?.Description || JSON.stringify(r)).slice(0, 120)}`);
+        }
+        if (!good.length) {
+          throw new Error(`CPSC returned ${raw.length} row(s) and NONE had a RecallNumber and a `
+            + `RecallDate — treating that as a broken feed, not as "no recalls"`);
+        }
+      }
+      return good.map(usToCanonical);
     },
   },
 
