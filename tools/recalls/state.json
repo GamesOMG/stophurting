@@ -4909,8 +4909,9 @@
    "modified": "2026-09-04",
    "num": "",
    "models": " Model kitchen play set for children, 5 modes of play, kids can cook, chop, clean, organize & create. Includes: bench, sink, cooktop, oven, refrigerator and chalkboard play food and cooking accessories",
-   "hash": "2a6-tpq9wn",
-   "img": "/assets/img/recalls/farm-to-table-play-kitchen-recall/1.webp"
+   "hash": "2a6-rpborr",
+   "img": "/assets/img/recalls/farm-to-table-play-kitchen-recall/1.webp",
+   "amendedAt": "2026-09-11"
   },
   "ca-82249": {
    "country": "ca",
@@ -5176,6 +5177,28 @@
    "models": " White coloured contact lenses designed for cosplay and makeup applications. Supplied in blister packs.",
    "hash": "25v-9ytwkz",
    "img": "/assets/img/recalls/coloured-contact-lenses-designed-for-cosplay-and-makeup-recall/1.webp"
+  },
+  "ca-82570": {
+   "country": "ca",
+   "slug": "aga-and-la-cornue-freestanding-dual-fuel-ranges-recall-82570",
+   "prod": "AGA and La Cornue freestanding dual fuel ranges",
+   "hazard": "fire hazard",
+   "date": "2026-09-10",
+   "modified": "2026-09-10",
+   "num": "82570",
+   "models": "AGA and La Cornue freestanding dual fuel ranges This recall involves the AGA and La Cornue dual fuel range cooking appliances listed in the table below. The recall applies to all colour variations, trim options, burner configurations, and gas types. These appliances feature a gas cooktop compatible with either natural gas or liquid propane (LP) and are equipped with electric ovens. The affected un",
+   "img": "/assets/img/recalls/aga-and-la-cornue-freestanding-dual-fuel-ranges-recall-82570/1.webp"
+  },
+  "ca-82611": {
+   "country": "ca",
+   "slug": "roasted-lemon-n-chilli-peanuts-recall-82611",
+   "prod": "Roasted Lemon N’ Chilli Peanuts",
+   "hazard": "Salmonella",
+   "date": "2026-09-10",
+   "modified": "2026-09-10",
+   "num": "82611",
+   "models": "Roasted Lemon N’ Chilli Peanuts Brand Product Size UPC Codes PK Roasted Lemon N’ Chilli Peanuts 65 g 6 28998 00124 5 BB: 2027/JN/30* Batch no: CN94",
+   "img": "/assets/img/recalls/roasted-lemon-n-chilli-peanuts-recall-82611/1.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
