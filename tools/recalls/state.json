@@ -5194,11 +5194,34 @@
    "slug": "roasted-lemon-n-chilli-peanuts-recall-82611",
    "prod": "Roasted Lemon N’ Chilli Peanuts",
    "hazard": "Salmonella",
-   "date": "2026-09-10",
-   "modified": "2026-09-10",
+   "date": "2026-09-11",
+   "modified": "2026-09-11",
    "num": "82611",
    "models": "Roasted Lemon N’ Chilli Peanuts Brand Product Size UPC Codes PK Roasted Lemon N’ Chilli Peanuts 65 g 6 28998 00124 5 BB: 2027/JN/30* Batch no: CN94",
-   "img": "/assets/img/recalls/roasted-lemon-n-chilli-peanuts-recall-82611/1.webp"
+   "img": "/assets/img/recalls/roasted-lemon-n-chilli-peanuts-recall-82611/1.webp",
+   "amendedAt": "2026-09-13"
+  },
+  "ca-82608": {
+   "country": "ca",
+   "slug": "goal-zero-yeti-3000x-power-stations-recall-82608",
+   "prod": "Goal Zero YETI 3000X Power Stations",
+   "hazard": "fire and burn hazards",
+   "date": "2026-09-11",
+   "modified": "2026-09-11",
+   "num": "82608",
+   "models": "Goal Zero YETI 3000X Power Stations This recall involves Goal Zero YETI 3000X power stations. The silver and black portable power stations measure about 62 centimetres (24.4 inches) high, 47 centimetres (18.5 inches) wide, 57 centimetres (22.3 inches) deep and weigh approximately 42 kilograms (92 pounds). The power stations have yellow handles and a digital display at the front with electrical por",
+   "img": "/assets/img/recalls/goal-zero-yeti-3000x-power-stations-recall-82608/1.webp"
+  },
+  "ca-82622": {
+   "country": "ca",
+   "slug": "chicken-breast-strips-recall-82622",
+   "prod": "Chicken Breast Strips",
+   "hazard": "Listeria monocytogenes",
+   "date": "2026-09-11",
+   "modified": "2026-09-11",
+   "num": "82622",
+   "models": "Chicken Breast Strips Brand Product Size UPC Codes Olymel Chicken Breast Strips 2 x 175 g 0 69094 63596 3 Best Before: 2026 OC 10",
+   "img": "/assets/img/recalls/chicken-breast-strips-recall-82622/1.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
