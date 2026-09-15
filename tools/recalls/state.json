@@ -5258,6 +5258,54 @@
    "models": " Spray gun supplied with the Rota Cota Trade Pro 3 Paint Sprayer (N1031235-UNIT – RCTA TradePro 3 Paint Sprayer) or separately as a spare part (N1031247-UNIT – RCTA TradePro 3 Spray Gun HB133).",
    "hash": "24q-pbe5f5",
    "img": "/assets/img/recalls/rota-cota-trade-pro-3-paint-spray-gun-recall/1.webp"
+  },
+  "uk-2609-0104": {
+   "country": "uk",
+   "slug": "focusray-wired-web-cam-recall-2609-0104",
+   "prod": "FocusRay Wired Web Cam",
+   "hazard": "risk of fire",
+   "date": "2026-09-15",
+   "modified": "2026-09-15",
+   "num": "2609-0104",
+   "models": "FocusRay Wired Web Cam",
+   "cat": "Communication media equipment",
+   "card": "/assets/img/recalls/focusray-wired-web-cam-recall-2609-0104/card.webp"
+  },
+  "uk-2609-0049": {
+   "country": "uk",
+   "slug": "groovy-baby-i-spy-a-fly-book-recall-2609-0049",
+   "prod": "Groovy Baby “I Spy a Fly” Book",
+   "hazard": "risk of choking",
+   "date": "2026-09-15",
+   "modified": "2026-09-15",
+   "num": "2609-0049",
+   "models": "Groovy Baby “I Spy a Fly” Book",
+   "cat": "Toys",
+   "card": "/assets/img/recalls/groovy-baby-i-spy-a-fly-book-recall-2609-0049/card.webp"
+  },
+  "uk-2609-0090": {
+   "country": "uk",
+   "slug": "la-redoute-alanis-printed-bathrobe-recall-2609-0090",
+   "prod": "La Redoute Alanis Printed Bathrobe",
+   "hazard": "The product is missing a required fire label, meaning consumers are not properly informed…",
+   "date": "2026-09-15",
+   "modified": "2026-09-15",
+   "num": "2609-0090",
+   "models": "La Redoute Alanis Printed Bathrobe",
+   "cat": "Clothing textiles fashion",
+   "card": "/assets/img/recalls/la-redoute-alanis-printed-bathrobe-recall-2609-0090/card.webp"
+  },
+  "uk-2512-0123": {
+   "country": "uk",
+   "slug": "stromer-st3-st5-and-st7-bicycles-fitted-with-recall-2512-0123",
+   "prod": "Stromer ST3, ST5 and ST7 Bicycles fitted with WREN Front Suspension Forks",
+   "hazard": "risk of injuries as the suspension forks can fail prematurely and crack, break or separat…",
+   "date": "2025-12-12",
+   "modified": "2026-09-15",
+   "num": "2512-0123",
+   "models": "Stromer ST3, ST5 and ST7 Bicycles fitted with WREN Front Suspension Forks",
+   "cat": "Hobby sports equipment",
+   "card": "/assets/img/recalls/stromer-st3-st5-and-st7-bicycles-fitted-with-recall-2512-0123/card.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
