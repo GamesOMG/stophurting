@@ -5318,6 +5318,30 @@
    "models": "Diall 16A Blue Site Connector and Blue Site Socket (Male and Female)",
    "cat": "Electrical appliances equipment",
    "card": "/assets/img/recalls/diall-16a-blue-site-connector-and-blue-site-recall-2609-0064/card.webp"
+  },
+  "uk-2609-0108": {
+   "country": "uk",
+   "slug": "smyths-toys-wooden-cornhole-board-with-bean-bags-recall-2609-0108",
+   "prod": "Smyths Toys Wooden Cornhole Board with Bean Bags",
+   "hazard": "risk to health as the sand inside the bags may be contaminated with a small quantity of a…",
+   "date": "2026-09-16",
+   "modified": "2026-09-16",
+   "num": "2609-0108",
+   "models": "Smyths Toys Wooden Cornhole Board with Bean Bags",
+   "cat": "Toys",
+   "card": "/assets/img/recalls/smyths-toys-wooden-cornhole-board-with-bean-bags-recall-2609-0108/card.webp"
+  },
+  "uk-2609-0010": {
+   "country": "uk",
+   "slug": "cambridge-audio-ceiling-speaker-fire-hood-recall-2609-0010",
+   "prod": "Cambridge Audio Ceiling Speaker Fire Hood",
+   "hazard": "The product may not perform as intended in limiting the spread of fire through a ceiling…",
+   "date": "2026-09-16",
+   "modified": "2026-09-16",
+   "num": "2609-0010",
+   "models": "Cambridge Audio Ceiling Speaker Fire Hood",
+   "cat": "Other",
+   "card": "/assets/img/recalls/cambridge-audio-ceiling-speaker-fire-hood-recall-2609-0010/card.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
