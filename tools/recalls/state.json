@@ -5342,6 +5342,40 @@
    "models": "Cambridge Audio Ceiling Speaker Fire Hood",
    "cat": "Other",
    "card": "/assets/img/recalls/cambridge-audio-ceiling-speaker-fire-hood-recall-2609-0010/card.webp"
+  },
+  "ca-82616": {
+   "country": "ca",
+   "slug": "simond-brand-alpinism-quickdraws-recall-82616",
+   "prod": "Simond brand Alpinism quickdraws",
+   "hazard": "injury hazard",
+   "date": "2026-09-15",
+   "modified": "2026-09-15",
+   "num": "82616",
+   "models": "Simond brand Alpinism quickdraws This recall involves Simond brand ultra-light Alpinism quickdraws, blue and purple, 11 cm and 17 cm long, model numbers #8589547 and # 8589548, marketed by Decathlon Canada.",
+   "img": "/assets/img/recalls/simond-brand-alpinism-quickdraws-recall-82616/1.webp"
+  },
+  "ca-82631": {
+   "country": "ca",
+   "slug": "frozen-whole-raspberries-recall-82631",
+   "prod": "Frozen whole raspberries",
+   "hazard": "norovirus",
+   "date": "2026-09-15",
+   "modified": "2026-09-15",
+   "num": "82631",
+   "models": "Frozen whole raspberries Brand Product Size UPC Codes Alasko Whole Raspberries (frozen) 1 kg 6 95058 00205 4 PO#138602 LOT# SY25314 BB: 2027-NO-10 Alasko IQF Whole Raspberries 5 kg (5 x 1 kg) 1 069505 800205 1 #Lot: SY25314 P.O: 138602 BB: 2027-NO-10",
+   "img": "/assets/img/recalls/frozen-whole-raspberries-recall-82631/1.webp"
+  },
+  "uk-2609-0060": {
+   "country": "uk",
+   "slug": "baylis-harding-oud-cedar-amber-1l-hand-wash-recall-2609-0060",
+   "prod": "Baylis & Harding Oud, Cedar & Amber 1L Hand Wash Refill",
+   "hazard": "microbiological risk as testing identified the presence of Pluralibacter gergoviae",
+   "date": "2026-09-16",
+   "modified": "2026-09-16",
+   "num": "2609-0060",
+   "models": "Baylis & Harding Oud, Cedar & Amber 1L Hand Wash Refill",
+   "cat": "Cosmetics",
+   "card": "/assets/img/recalls/baylis-harding-oud-cedar-amber-1l-hand-wash-recall-2609-0060/card.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
