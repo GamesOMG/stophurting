@@ -4153,11 +4153,12 @@
    "prod": "HTI Toys Fun Sand Art Bottle Kit sold by Curious Minds (Grasshopper Toys)",
    "hazard": "The products present a risk to health as the sand may be contaminated with a quantity of…",
    "date": "2026-07-01",
-   "modified": "2026-07-01",
+   "modified": "2026-09-21",
    "num": "2607-0020",
    "models": "HTI Toys Fun Sand Art Bottle Kit sold by Curious Minds (Grasshopper Toys)",
    "cat": "Toys",
-   "card": "/assets/img/recalls/hti-toys-fun-sand-art-bottle-kit-sold-recall-2607-0020/card.webp"
+   "card": "/assets/img/recalls/hti-toys-fun-sand-art-bottle-kit-sold-recall-2607-0020/card.webp",
+   "amendedAt": "2026-09-21"
   },
   "uk-2606-0321": {
    "country": "uk",
@@ -5709,6 +5710,17 @@
    "models": " Plastic bag with a watertight and dust tight closure mechanism consisting of sealing strips with embedded permanent magnets that automatically close and seal the bag. Affected products are Medi size and have petrol blue coloured sealing strips with the lot number 2409140930201, which is located on back of sealing strip.",
    "hash": "28e-1fhbzip",
    "img": "/assets/img/recalls/fidlock-hermetic-medi-size-dry-bag-recall/1.webp"
+  },
+  "ca-82649": {
+   "country": "ca",
+   "slug": "schwarzkopf-professional-osis-grip-mousse-6-76fl-oz-recall-82649",
+   "prod": "Schwarzkopf Professional Osis Grip Mousse 6.76fl Oz/200ml",
+   "hazard": "injury hazard",
+   "date": "2026-09-21",
+   "modified": "2026-09-21",
+   "num": "82649",
+   "models": "Schwarzkopf Professional Osis Grip Mousse 6.76fl Oz/200ml This recall involves Schwarzkopf Professional Osis Grip Mousse 6.76 fl Oz/200ml.",
+   "img": "/assets/img/recalls/schwarzkopf-professional-osis-grip-mousse-6-76fl-oz-recall-82649/1.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
