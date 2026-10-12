@@ -46,7 +46,10 @@ const argOf = (f, d) => { const i = process.argv.indexOf(f); return i > -1 && pr
 // scheduled task kept polling only the US until somebody remembered to edit the task — which is
 // the same shape as a check that is in no gate. `--country us` still exists for a targeted run.
 const COUNTRY_ARG = argOf('--country', 'all');
-const TARGETS = COUNTRY_ARG === 'all' ? COUNTRIES : COUNTRY_ARG.split(',').map((s) => s.trim());
+// A PAUSED source (sources.mjs `paused`) is left out of the scheduled run and still runs when named
+// with --country: that is how you test whether it is back.
+const TARGETS = COUNTRY_ARG === 'all' ? COUNTRIES.filter((c) => !SOURCES[c].paused)
+  : COUNTRY_ARG.split(',').map((s) => s.trim());
 for (const t of TARGETS) sourceFor(t);   // fail loudly on a typo, before any fetching
 // The country a record belongs to. Records written before Australia existed have no `country`
 // field, so US is the migration default — no state rewrite needed.
@@ -387,7 +390,7 @@ function hubPage(items, country) {
     <section class="wrap section">
       <h1 class="section-title">${esc(src.hubHeading)}</h1>
       ${countryStrip(country)}
-      <p class="section-sub">${esc(src.hubIntro(items.length))}</p>
+      <p class="section-sub">${esc(src.hubIntro(items.length))}${src.paused ? ' ' + esc(src.paused.note) : ''}</p>
       <div class="search-box" style="margin:0 0 1.2rem"><input id="q" type="search" placeholder="Search a brand, product, or model number…" autocomplete="off" style="border:1px solid var(--light)" /></div>
       <div class="r-grid" id="hub-list">
 ${/* 🪤 NOT items.map(card) — Array.map passes (element, INDEX, array), so the index landed in
@@ -1138,6 +1141,11 @@ const freshAge = {};
     const last = newest[c];
     const quiet = last ? Math.round((new Date(today) - new Date(last)) / 864e5) : Infinity;
     const limit = src.quietDays ?? 30;
+    if (src.paused) {   // silence is expected while paused; alarming on it would keep the row red for good
+      console.log(`  ${c.toUpperCase()}  newest ${last || '(none)'}  PAUSED since ${src.paused.since} — not fetched, no alarm`);
+      freshAge[c] = 'paused';
+      continue;
+    }
     const bad = quiet > limit;
     console.log(`  ${c.toUpperCase()}  newest ${last || '(none)'}  ${quiet === Infinity ? '—' : `${quiet}d ago`}  (alarm at ${limit}d) ${bad ? '🔴 STALE' : '✓'}`);
     // ⚠ Keep the first three words stable whatever the shape — alert.mjs keys an alarm on them, so
@@ -1179,7 +1187,7 @@ if (failures.length) {
 // case where a liveness signal matters most, because nothing else about that run is visible.
 if (COUNTRY_ARG === 'all') {
   const { beat } = await import('./heartbeat.mjs');
-  const fresh = COUNTRIES.map((c) => `${c.toUpperCase()} ${freshAge[c] ?? '?'}d`).join(' · ');
+  const fresh = COUNTRIES.map((c) => `${c.toUpperCase()} ${freshAge[c] === 'paused' ? 'paused' : `${freshAge[c] ?? '?'}d`}`).join(' · ');
   await beat('stophurting-recalls', {
     name: 'stophurting · recall feeds',
     ok: failures.length === 0,

@@ -765,6 +765,15 @@ export const SOURCES = {
     // that cannot be recovered from: the feed is a rolling 25 with no archive, so anything that
     // scrolls off while we are blind is gone from them and from us, permanently.
     quietDays: 21,
+    // ⏸ PAUSED 2026-10-12 (Jason). From ~10-04 productsafety.gov.au answered 403 (Akamai) to EVERY
+    // automated request — the RSS feed, the recall pages, the homepage — from Borg-Cube, bhs1 and the
+    // billing box alike, whatever the user agent. There is no AU recalls dataset on data.gov.au; the
+    // OECD GlobalRecalls portal needs an API key. A source that fails every run kept the heartbeat red
+    // for good, and a row that is always red cannot alarm on anything NEW. So: the AU pages stay up,
+    // the scheduled run stops fetching AU and stops alarming on its silence, the hub says so, and
+    // `--country au` still tries it by hand — that is how you find out it is back. Remove `paused`
+    // to resume. ⚠ The feed is a rolling 25 with no archive: whatever scrolls off while paused is gone.
+    paused: { since: '2026-10-12', note: 'New Australian recalls are paused: since early October the regulator\x27s site has stopped answering automated requests, so the list below stops there. Every notice already here stays, with its link to the official page.' },
     windowNote: 'the ACCC publishes a rolling 25 items with NO archive, so every page we hold beyond those 25 is "absent" on every single run.',
     hubTitle: 'Australian Product Recalls — StopHurting',
     hubHeading: 'Australian product recalls',
