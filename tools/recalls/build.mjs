@@ -315,13 +315,13 @@ const FAVICON = `<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://ww
 // hardens every other country: a US or Canadian record whose mirror failed used to emit an <img>
 // pointing at a file that was never written.
 // ⛔ `hasImg` is decided by what is RECORDED IN STATE, not by guessing a path exists.
+// ⛔ NO PATH GUESS FOR US/AU ANY MORE (2026-10-12). A fallback here once emitted `<slug>/1.webp` for
+// any US/AU record without `img`, for records older than the field. By 2026-10 every US/AU record
+// with a photo stored `img`, and the only ones without it were three US recalls whose photo never
+// mirrored — the guess pointed at nothing, the dead-refs hook refused the commit, and from 09-24 to
+// 10-12 every run built its pages and published none of them.
 function cardImage(r) {
   if (r.img) return `<img src="${esc(r.img)}" alt="${esc(r.prod)}" loading="lazy" width="400" height="300" />`;
-  if (cc(r) === 'us' || cc(r) === 'au') {
-    // Pre-dating the stored `img` field: these countries mirrored every photo, and the path is
-    // deterministic. Newer records carry `img` explicitly.
-    return `<img src="/assets/img/recalls/${esc(r.slug)}/1.webp" alt="${esc(r.prod)}" loading="lazy" width="400" height="300" />`;
-  }
   // ⛔ The category ALONE. An earlier version added "no photo published" under it, which is true
   // and which nobody needs to read ninety-nine times — repeated down a whole hub it reads as an
   // apology rather than a design. The tile is visibly not a photograph; that is enough.
@@ -415,7 +415,7 @@ ${/* 🪤 NOT items.map(card) — Array.map passes (element, INDEX, array), so t
         // Search spans every country on purpose — "is my thing recalled" does not stop at a
         // border, and the same product is often recalled in both. So each RESULT carries its
         // country code, which the hub grid does not need (there, every card is that country).
-        ? hits.map(function (r) { var cc = (r.cc || 'us').toUpperCase(); return '<a class="r-card" href="/' + (r.cc || 'us') + '/recalls/' + r.slug + '/"><span class="r-card-img"><img src="/assets/img/recalls/' + r.slug + '/1.webp" alt="" loading="lazy" /></span><span class="r-card-body"><span class="r-card-prod"><span class="r-card-cc">' + cc + '</span>' + r.prod + '</span><span class="r-card-hazard">' + r.hazard + '</span><span class="r-card-date">' + r.date + '</span></span></a>'; }).join('')
+        ? hits.map(function (r) { var cc = (r.cc || 'us').toUpperCase(); return '<a class="r-card" href="/' + (r.cc || 'us') + '/recalls/' + r.slug + '/"><span class="r-card-img">' + (r.i ? '<img src="/assets/img/recalls/' + r.slug + '/1.webp" alt="" loading="lazy" />' : '<span class="r-card-noimg"><span class="r-card-cat">' + (r.cat || 'Recall') + '</span></span>') + '</span><span class="r-card-body"><span class="r-card-prod"><span class="r-card-cc">' + cc + '</span>' + r.prod + '</span><span class="r-card-hazard">' + r.hazard + '</span><span class="r-card-date">' + r.date + '</span></span></a>'; }).join('')
         : '<p class="r-empty">No tracked recall matches that — we cover US and Australian recalls from June 2026 onward.</p>';
     });
   })();
@@ -945,9 +945,13 @@ ${AD_HTML ? `          <div class="hl-ad" aria-label="Advertisement">${AD_HTML}<
   writeFileSync(home, html);
 }
 function writeSearchIndex(items) {
+  // `i` = this record has a mirrored photo; without it the search result draws the same category
+  // tile the hub does (cardImage). Search used to assume a photo for every hit, so all 137 UK
+  // notices and every other imageless record showed a broken image in the results.
   const idx = items.map((r) => ({
     slug: r.slug, cc: cc(r), date: r.date, prod: r.prod, hazard: clamp(r.hazard, 90),
     t: `${r.prod} ${r.hazard} ${r.models || ''} ${r.num}`.toLowerCase(),
+    ...(r.img ? { i: 1 } : { cat: r.cat || 'Recall' }),
   }));
   writeFileSync(path.join(ROOT, 'recalls-index.json'), JSON.stringify(idx));
 }
@@ -1230,7 +1234,29 @@ if (WRITE) {
   console.log(`hub: ${items.length} recalls · home strip + ticker + search index + sitemap rebuilt`);
 }
 
-if (COMMIT && newUrls.length) {
+// ⛔⛔ A FAILED PUBLISH MUST NOT STRAND ITS PAGES. State is written before the commit, so a run whose
+// commit is refused has already marked its recalls as known — and the next run finds them "not new"
+// and printed "nothing new - no commit" forever. From 2026-09-24 to 10-12 that stranded 71 built
+// recall pages (food, toys, helmets, four countries) in the working tree while every later run
+// looked clean. ▶ So a run with nothing new still publishes whatever is uncommitted, and pings
+// IndexNow for the recall pages that are being ADDED by it. (`git add -A` already swept the whole
+// tree on the new-recall path, so this widens nothing about what the job commits.)
+let catchUp = false;
+if (COMMIT && !newUrls.length) {
+  const dirty = execSync('git status --porcelain', { cwd: ROOT }).toString().split('\n').filter(Boolean);
+  if (dirty.length) {
+    catchUp = true;
+    for (const l of dirty) {
+      const p = l.slice(3).split(' -> ').pop();
+      if (/^(A |\?\?)/.test(l) && /^(us|au|ca|uk)\/recalls\/[^/]+\/index\.html$/.test(p)) {
+        newUrls.push(`${ORIGIN}/${p.replace(/index\.html$/, '')}`);
+      }
+    }
+    console.log(`catch-up: ${dirty.length} uncommitted file(s) from an earlier run, ${newUrls.length} of them new recall page(s)`);
+  }
+}
+
+if (COMMIT && (newUrls.length || catchUp)) {
   // ⛔⛔ THE HEARTBEAT ALREADY WENT OUT GREEN ABOVE (the beat call ~50 lines up), and everything
   // below here can still fail: a rejected push, a network drop, an IndexNow 4xx. Before this
   // guard the board said "ok · N feeds fresh" while the pages never reached the site, and the
@@ -1240,7 +1266,7 @@ if (COMMIT && newUrls.length) {
   //   thing Jason opens; it must never carry a green row for a run that published nothing.
   try {
     execSync('git add -A', { cwd: ROOT });
-    execSync(`git commit -m "recalls: ${newUrls.length} new (auto)" -m "Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"`, { cwd: ROOT });
+    execSync(`git commit -m "recalls: ${catchUp ? `publish what a failed run left (${newUrls.length} recall page(s))` : `${newUrls.length} new`} (auto)" -m "Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"`, { cwd: ROOT });
     execSync('git push', { cwd: ROOT });
     console.log(await indexNow(newUrls));
     console.log(`pushed ${newUrls.length} new recall page(s)`);
