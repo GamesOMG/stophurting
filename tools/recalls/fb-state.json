@@ -924,6 +924,24 @@
    "slug": "papablic-of-usa-convertible-bedside-sleepers-recall-27027",
    "card": "rendered"
   },
+  "11025": {
+   "at": "2026-10-16T03:20:09.453Z",
+   "postId": "222728804264171_122314901702237829",
+   "slug": "usopal-xalirium-portable-bed-rails-recall-27029",
+   "digest": true
+  },
+  "11026": {
+   "at": "2026-10-16T03:20:09.453Z",
+   "postId": "222728804264171_122314901702237829",
+   "slug": "hatsanusa-blitz-air-rifles-recall-27025",
+   "digest": true
+  },
+  "11027": {
+   "at": "2026-10-16T03:20:09.453Z",
+   "postId": "222728804264171_122314901702237829",
+   "slug": "primark-101-dalmatians-faux-leather-childrens-coin-purses-recall-27028",
+   "digest": true
+  },
   "ca-82487": {
    "at": "2026-08-16T21:59:38.784Z",
    "postId": "222728804264171_122304161852237829",
@@ -1729,5 +1747,5 @@
    "card": "rendered"
   }
  },
- "lastDigest": "2026-10-15"
+ "lastDigest": "2026-10-16"
 }
