@@ -6662,6 +6662,39 @@
    "models": "Pimple Popping Squishes containing needles sold via AliExpress",
    "cat": "Toys",
    "card": "/assets/img/recalls/pimple-popping-squishes-containing-needles-sold-via-aliexpress-recall-2610-0049/card.webp"
+  },
+  "ca-82799": {
+   "country": "ca",
+   "slug": "white-lotus-seed-paste-mooncake-with-2-egg-recall-82799",
+   "prod": "White Lotus Seed Paste Mooncake with 2 Egg Yolks",
+   "hazard": "undeclared peanut",
+   "date": "2026-10-16",
+   "modified": "2026-10-16",
+   "num": "82799",
+   "models": "White Lotus Seed Paste Mooncake with 2 Egg Yolks Brand Product Size UPC Code None (Chinese characters only) White Lotus Seed Paste Mooncake with 2 Egg Yolks 600 g (4 x 150 g) 4 897002 743648 Best before 2026-NO-30",
+   "img": "/assets/img/recalls/white-lotus-seed-paste-mooncake-with-2-egg-recall-82799/1.webp"
+  },
+  "ca-82806": {
+   "country": "ca",
+   "slug": "onoff-s9-carbon-mtb-handlebar-recall-82806",
+   "prod": "ONOFF S9 Carbon MTB handlebar",
+   "hazard": "fall and injury hazards",
+   "date": "2026-10-16",
+   "modified": "2026-10-16",
+   "num": "82806",
+   "models": "ONOFF S9 Carbon MTB handlebar This recall involves certain Mondraker mountain bicycles equiped with ONOFF S9 Carbon MTB handlebars. The bicycle serial number is located on the underside of the bottom bracket area of the frame.",
+   "img": "/assets/img/recalls/onoff-s9-carbon-mtb-handlebar-recall-82806/1.webp"
+  },
+  "ca-82810": {
+   "country": "ca",
+   "slug": "french-onion-soup-recall-82810",
+   "prod": "French Onion Soup",
+   "hazard": "undeclared wheat",
+   "date": "2026-10-16",
+   "modified": "2026-10-16",
+   "num": "82810",
+   "models": "French Onion Soup Brand Product Size UPC Codes Soup Time French Onion Soup None 6 28250 50659 4 All codes where wheat is not declared on the label",
+   "img": "/assets/img/recalls/french-onion-soup-recall-82810/1.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
