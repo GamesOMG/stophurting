@@ -6695,6 +6695,18 @@
    "num": "82810",
    "models": "French Onion Soup Brand Product Size UPC Codes Soup Time French Onion Soup None 6 28250 50659 4 All codes where wheat is not declared on the label",
    "img": "/assets/img/recalls/french-onion-soup-recall-82810/1.webp"
+  },
+  "uk-2610-0111": {
+   "country": "uk",
+   "slug": "ambiano-ionic-hairdryers-recall-2610-0111",
+   "prod": "Ambiano Ionic Hairdryers",
+   "hazard": "risk of electric shock or fire as, over time, the power cord may become damaged",
+   "date": "2026-10-16",
+   "modified": "2026-10-19",
+   "num": "2610-0111",
+   "models": "Ambiano Ionic Hairdryers",
+   "cat": "Electrical appliances equipment",
+   "card": "/assets/img/recalls/ambiano-ionic-hairdryers-recall-2610-0111/card.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
