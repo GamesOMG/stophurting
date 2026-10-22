@@ -6730,6 +6730,18 @@
    "models": "Horace Vetiver Primavera Beard Oil",
    "cat": "Cosmetics",
    "card": "/assets/img/recalls/horace-vetiver-primavera-beard-oil-recall-2609-0073/card.webp"
+  },
+  "uk-2609-0213": {
+   "country": "uk",
+   "slug": "axkid-minikid-core-car-seats-recall-2609-0213",
+   "prod": "Axkid MiniKid Core Car Seats",
+   "hazard": "The child car seat did not achieve the level of performance required under the manufactur…",
+   "date": "2026-10-22",
+   "modified": "2026-10-22",
+   "num": "2609-0213",
+   "models": "Axkid MiniKid Core Car Seats",
+   "cat": "Childcare articles childrens equipment",
+   "card": "/assets/img/recalls/axkid-minikid-core-car-seats-recall-2609-0213/card.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
