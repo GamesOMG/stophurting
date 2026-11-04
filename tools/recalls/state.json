@@ -7121,6 +7121,17 @@
    "models": "Ancient Wisdom Bath Donut",
    "cat": "Cosmetics",
    "card": "/assets/img/recalls/ancient-wisdom-bath-donut-recall-2610-0144/card.webp"
+  },
+  "ca-82890": {
+   "country": "ca",
+   "slug": "balloon-blowing-kits-recall-82890",
+   "prod": "Balloon blowing kits",
+   "hazard": "Chemical hazard",
+   "date": "2026-11-02",
+   "modified": "2026-11-02",
+   "num": "82890",
+   "models": "Balloon blowing kits Balloon blowing kits are toys that consist of a solvent mixture in a tube and short plastic straws for blowing. Children can form balloons or bubbles by slowly squeezing out a ball of the mixture from the tube and sticking it on the end of the straw. The child then blows through the straw to create a bubble.",
+   "img": "/assets/img/recalls/balloon-blowing-kits-recall-82890/1.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
