@@ -2734,6 +2734,61 @@
    "models": "",
    "img": "/assets/img/recalls/haiara-power-banks-recall-27056/1.webp"
   },
+  "11045": {
+   "country": "us",
+   "slug": "arlopu-slide-playsets-recall-27066",
+   "prod": "Arlopu Slide Playsets",
+   "hazard": "Serious Injury and Death from Head and Neck Entrapment hazard",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
+   "num": "27066",
+   "models": "",
+   "img": "/assets/img/recalls/arlopu-slide-playsets-recall-27066/1.webp"
+  },
+  "11046": {
+   "country": "us",
+   "slug": "gourmia-9-slice-digital-air-fryer-ovens-recall-27069",
+   "prod": "Gourmia 9-Slice Digital Air Fryer Ovens",
+   "hazard": "Burn hazard",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
+   "num": "27069",
+   "models": "",
+   "img": "/assets/img/recalls/gourmia-9-slice-digital-air-fryer-ovens-recall-27069/1.webp"
+  },
+  "11047": {
+   "country": "us",
+   "slug": "kikea-store-x-vesolje-nursing-pillows-recall-27071",
+   "prod": "Kikea Store X-VESOLJE Nursing Pillows",
+   "hazard": "Serious Injury or Death from Suffocation",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
+   "num": "27071",
+   "models": "",
+   "img": "/assets/img/recalls/kikea-store-x-vesolje-nursing-pillows-recall-27071/1.webp"
+  },
+  "11048": {
+   "country": "us",
+   "slug": "bose-lithium-ion-battery-packs-for-s1-pro-recall-27065",
+   "prod": "Bose Lithium-Ion Battery Packs for S1 Pro and S1 Pro+ Bluetooth Speaker Systems",
+   "hazard": "Injury from Fire and Overheating hazard",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
+   "num": "27065",
+   "models": "",
+   "img": "/assets/img/recalls/bose-lithium-ion-battery-packs-for-s1-pro-recall-27065/1.webp"
+  },
+  "11049": {
+   "country": "us",
+   "slug": "magnetopia-magnetic-building-cubes-and-blocks-recall-27076",
+   "prod": "Magnetopia Magnetic Building Cubes and Blocks",
+   "hazard": "Serious Injury or Death from Magnet Ingestion hazard",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
+   "num": "27076",
+   "models": "",
+   "card": "/assets/img/recalls/magnetopia-magnetic-building-cubes-and-blocks-recall-27076/card.webp"
+  },
   "2b980a2c-b407-4488-af45-d8cce9c8650e": {
    "country": "au",
    "slug": "nevenka-baby-pull-string-giraffe-toy-recall",
