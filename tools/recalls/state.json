@@ -2789,6 +2789,83 @@
    "models": "",
    "card": "/assets/img/recalls/magnetopia-magnetic-building-cubes-and-blocks-recall-27076/card.webp"
   },
+  "11050": {
+   "country": "us",
+   "slug": "vanderhall-north-america-all-model-year-2024-2026-recall-27064",
+   "prod": "Vanderhall North America All Model Year 2024-2026 Brawley Electric Recreational Off-road Vehicles",
+   "hazard": "Injury and Crash hazard",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
+   "num": "27064",
+   "models": "",
+   "img": "/assets/img/recalls/vanderhall-north-america-all-model-year-2024-2026-recall-27064/1.webp"
+  },
+  "11051": {
+   "country": "us",
+   "slug": "little-giant-ladders-with-rapid-locks-recall-27067",
+   "prod": "Little Giant Ladders with Rapid Locks",
+   "hazard": "Serious Injury from Fall hazard",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
+   "num": "27067",
+   "models": "",
+   "img": "/assets/img/recalls/little-giant-ladders-with-rapid-locks-recall-27067/1.webp"
+  },
+  "11052": {
+   "country": "us",
+   "slug": "jiastfeng-hauoms-eight-drawer-dressers-recall-27068",
+   "prod": "Jiastfeng HAUOMS Eight-drawer Dressers",
+   "hazard": "Serious Injury or Death from Tip-Over and Entrapment hazard",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
+   "num": "27068",
+   "models": "",
+   "img": "/assets/img/recalls/jiastfeng-hauoms-eight-drawer-dressers-recall-27068/1.webp"
+  },
+  "11053": {
+   "country": "us",
+   "slug": "c-a-m-p-mountain-ice-axes-recall-27070",
+   "prod": "C.A.M.P. Mountain Ice Axes",
+   "hazard": "Serious Injury or Death from Fall hazard",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
+   "num": "27070",
+   "models": "",
+   "img": "/assets/img/recalls/c-a-m-p-mountain-ice-axes-recall-27070/1.webp"
+  },
+  "11054": {
+   "country": "us",
+   "slug": "baby-brezza-enterprises-superfast-sterilizer-dryers-recall-27072",
+   "prod": "Baby Brezza Enterprises SuperFast Sterilizer Dryers",
+   "hazard": "Overheating and Burn hazard",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
+   "num": "27072",
+   "models": "",
+   "img": "/assets/img/recalls/baby-brezza-enterprises-superfast-sterilizer-dryers-recall-27072/1.webp"
+  },
+  "11055": {
+   "country": "us",
+   "slug": "u-s-titan-x-pro-youth-all-terrain-recall-27074",
+   "prod": "U.S. Titan X-Pro Youth All-Terrain Vehicles (ATVs)",
+   "hazard": "Serious Injury or Death from Crash hazard",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
+   "num": "27074",
+   "models": "",
+   "img": "/assets/img/recalls/u-s-titan-x-pro-youth-all-terrain-recall-27074/1.webp"
+  },
+  "11056": {
+   "country": "us",
+   "slug": "sanven-technology-vevor-bmx-bicycles-recall-27073",
+   "prod": "Sanven Technology Vevor BMX Bicycles",
+   "hazard": "Serious Injury or Death from Crash hazard",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
+   "num": "27073",
+   "models": "",
+   "img": "/assets/img/recalls/sanven-technology-vevor-bmx-bicycles-recall-27073/1.webp"
+  },
   "2b980a2c-b407-4488-af45-d8cce9c8650e": {
    "country": "au",
    "slug": "nevenka-baby-pull-string-giraffe-toy-recall",
@@ -7198,6 +7275,18 @@
    "num": "82901",
    "models": "Link Product LED Organza Costume Wings This recall involves the Fright Night Organza Wings. The Organza wings with LED lights can be purchased in Black, White, Red, Pink, Fuchsia and Purple and contains 3 x LR44 Batteries.",
    "img": "/assets/img/recalls/link-product-led-organza-costume-wings-recall-82901/1.webp"
+  },
+  "uk-2609-0105": {
+   "country": "uk",
+   "slug": "wednesday-addams-costume-recall-2609-0105",
+   "prod": "Wednesday Addams Costume",
+   "hazard": "risk of burns as the black wig does not meet the flammability requirements of BS EN 71-2",
+   "date": "2026-10-22",
+   "modified": "2026-11-05",
+   "num": "2609-0105",
+   "models": "Wednesday Addams Costume",
+   "cat": "Toys",
+   "card": "/assets/img/recalls/wednesday-addams-costume-recall-2609-0105/card.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
