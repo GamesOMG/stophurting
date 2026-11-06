@@ -5561,14 +5561,15 @@
   },
   "ca-82509": {
    "country": "ca",
-   "slug": "oversized-heightened-kids-walking-rehabilitation-walker-pediatric-gait-recall-82509",
-   "prod": "Oversized Heightened Kids Walking Rehabilitation Walker Pediatric Gait Training Aid Special Child Mobility Support Device",
+   "slug": "baby-walkers-recall-82509",
+   "prod": "Baby walkers",
    "hazard": "Injury hazard",
-   "date": "2026-08-21",
-   "modified": "2026-08-21",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
    "num": "82509",
-   "models": "Oversized Heightened Kids Walking Rehabilitation Walker Pediatric Gait Training Aid Special Child Mobility Support Device A baby walker is an enclosed activity structure built to support a baby or young child in either a sitting or standing position so that their feet touch the floor. Walkers are mounted on wheels or a device that allows independent horizontal movement. This alert involves the “Ov",
-   "img": "/assets/img/recalls/oversized-heightened-kids-walking-rehabilitation-walker-pediatric-gait-recall-82509/1.webp"
+   "models": "Baby walkers A baby walker is an enclosed activity structure built to support a baby or young child in either a sitting or standing position so that their feet touch the floor. Walkers are mounted on wheels or a device that allows independent horizontal movement. This alert involves the following products: Oversized Heightened Kids Walking Rehabilitation Walker Pediatric Gait Training Aid Special ",
+   "img": "/assets/img/recalls/baby-walkers-recall-82509/1.webp",
+   "amendedAt": "2026-11-06"
   },
   "ca-82510": {
    "country": "ca",
@@ -7287,6 +7288,50 @@
    "models": "Wednesday Addams Costume",
    "cat": "Toys",
    "card": "/assets/img/recalls/wednesday-addams-costume-recall-2609-0105/card.webp"
+  },
+  "ca-82795": {
+   "country": "ca",
+   "slug": "bose-s1-pro-and-s1-pro-system-battery-recall-82795",
+   "prod": "Bose S1 Pro and S1 Pro+ System Battery Packs",
+   "hazard": "fire and burn hazards",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
+   "num": "82795",
+   "models": "Bose S1 Pro and S1 Pro+ System Battery Packs This recall involves Bose S1 Pro and S1 Pro+ System Battery Packs. The affected battery packs are lithium-ion rechargeable battery packs that are designed for exclusive use in Bose S1 Pro Portable Bluetooth Speaker System and S1 Pro+ Portable Bluetooth Speaker System. The following products are affected: Consumers can determine if they have an affected ",
+   "img": "/assets/img/recalls/bose-s1-pro-and-s1-pro-system-battery-recall-82795/1.webp"
+  },
+  "ca-82880": {
+   "country": "ca",
+   "slug": "leakbee-carbon-monoxide-detector-recall-82880",
+   "prod": "Leakbee Carbon Monoxide Detector",
+   "hazard": "inaccurate carbon monoxide detection",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
+   "num": "82880",
+   "models": "Leakbee Carbon Monoxide Detector This recall involves Leakbee Carbon Monoxide Detector. The detector is encased in a white plastic housing with the model number YC302 printed on a sticker located on the back of the unit.",
+   "img": "/assets/img/recalls/leakbee-carbon-monoxide-detector-recall-82880/1.webp"
+  },
+  "ca-82889": {
+   "country": "ca",
+   "slug": "newdery-power-banks-recall-82889",
+   "prod": "NEWDERY Power Banks",
+   "hazard": "fire hazard",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
+   "num": "82889",
+   "models": "NEWDERY Power Banks This recall involves Newdery Power Banks Model ZHX-PB22. The power banks are encased in a clear plastic shell in the front that shows a black interior with two yellow cables attached to a black exterior shell. The brand name “NEWDERY” is engraved on the front and the model number “ZHX-PB22” is printed on the back. The products were previously sold on Amazon.ca.",
+   "img": "/assets/img/recalls/newdery-power-banks-recall-82889/1.webp"
+  },
+  "ca-82894": {
+   "country": "ca",
+   "slug": "baby-brezza-superfast-sterilizer-dryer-recall-82894",
+   "prod": "Baby Brezza SuperFast Sterilizer Dryer",
+   "hazard": "fire and burn hazards",
+   "date": "2026-11-05",
+   "modified": "2026-11-05",
+   "num": "82894",
+   "models": "Baby Brezza SuperFast Sterilizer Dryer This recall involves the Baby Brezza SuperFast Sterilizer Dryer. The affected product sterilizes and dries baby bottles and their parts and accessories, and has model number BRZ0083 and UPC 886267008313. The model number can be found on a label on the underside of the product and the UPC can be found on the product packaging.",
+   "img": "/assets/img/recalls/baby-brezza-superfast-sterilizer-dryer-recall-82894/1.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
