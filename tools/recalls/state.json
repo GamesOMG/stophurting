@@ -5561,14 +5561,14 @@
   },
   "ca-82509": {
    "country": "ca",
-   "slug": "baby-walkers-recall-82509",
-   "prod": "Baby walkers",
+   "slug": "oversized-heightened-kids-walking-rehabilitation-walker-pediatric-gait-recall-82509",
+   "prod": "Oversized Heightened Kids Walking Rehabilitation Walker Pediatric Gait Training Aid Special Child Mobility Support Device",
    "hazard": "Injury hazard",
-   "date": "2026-11-05",
-   "modified": "2026-11-05",
+   "date": "2026-08-21",
+   "modified": "2026-08-21",
    "num": "82509",
-   "models": "Baby walkers A baby walker is an enclosed activity structure built to support a baby or young child in either a sitting or standing position so that their feet touch the floor. Walkers are mounted on wheels or a device that allows independent horizontal movement. This alert involves the following products: Oversized Heightened Kids Walking Rehabilitation Walker Pediatric Gait Training Aid Special ",
-   "img": "/assets/img/recalls/baby-walkers-recall-82509/1.webp",
+   "models": "Oversized Heightened Kids Walking Rehabilitation Walker Pediatric Gait Training Aid Special Child Mobility Support Device A baby walker is an enclosed activity structure built to support a baby or young child in either a sitting or standing position so that their feet touch the floor. Walkers are mounted on wheels or a device that allows independent horizontal movement. This alert involves the fol",
+   "img": "/assets/img/recalls/oversized-heightened-kids-walking-rehabilitation-walker-pediatric-gait-recall-82509/1.webp",
    "amendedAt": "2026-11-06"
   },
   "ca-82510": {
@@ -7332,6 +7332,42 @@
    "num": "82894",
    "models": "Baby Brezza SuperFast Sterilizer Dryer This recall involves the Baby Brezza SuperFast Sterilizer Dryer. The affected product sterilizes and dries baby bottles and their parts and accessories, and has model number BRZ0083 and UPC 886267008313. The model number can be found on a label on the underside of the product and the UPC can be found on the product packaging.",
    "img": "/assets/img/recalls/baby-brezza-superfast-sterilizer-dryer-recall-82894/1.webp"
+  },
+  "uk-2610-0246": {
+   "country": "uk",
+   "slug": "1000w-bagless-cylinder-vacuum-cleaner-sold-via-ebay-recall-2610-0246",
+   "prod": "1000W Bagless Cylinder Vacuum Cleaner sold via eBay",
+   "hazard": "risk of fire",
+   "date": "2026-11-06",
+   "modified": "2026-11-06",
+   "num": "2610-0246",
+   "models": "1000W Bagless Cylinder Vacuum Cleaner sold via eBay",
+   "cat": "Electrical appliances equipment",
+   "card": "/assets/img/recalls/1000w-bagless-cylinder-vacuum-cleaner-sold-via-ebay-recall-2610-0246/card.webp"
+  },
+  "uk-2611-0018": {
+   "country": "uk",
+   "slug": "petite-amelie-wooden-mobile-holder-recall-2611-0018",
+   "prod": "Petite Amélie Wooden Mobile Holder",
+   "hazard": "risk of injuries",
+   "date": "2026-11-06",
+   "modified": "2026-11-06",
+   "num": "2611-0018",
+   "models": "Petite Amélie Wooden Mobile Holder",
+   "cat": "Childcare articles childrens equipment",
+   "card": "/assets/img/recalls/petite-amelie-wooden-mobile-holder-recall-2611-0018/card.webp"
+  },
+  "uk-2607-0266": {
+   "country": "uk",
+   "slug": "piper-k-bag-charms-seal-lifeguard-and-duck-recall-2607-0266",
+   "prod": "Piper K Bag Charms – Seal Lifeguard and Duck in Dungarees sold by TK Maxx",
+   "hazard": "risk of choking",
+   "date": "2026-11-02",
+   "modified": "2026-11-02",
+   "num": "2607-0266",
+   "models": "Piper K Bag Charms – Seal Lifeguard and Duck in Dungarees sold by TK Maxx",
+   "cat": "Household decorative articles",
+   "card": "/assets/img/recalls/piper-k-bag-charms-seal-lifeguard-and-duck-recall-2607-0266/card.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
