@@ -2866,6 +2866,17 @@
    "models": "",
    "img": "/assets/img/recalls/sanven-technology-vevor-bmx-bicycles-recall-27073/1.webp"
   },
+  "11057": {
+   "country": "us",
+   "slug": "kakgold-4wd-remote-controlled-car-toys-recall-27085",
+   "prod": "Kakgold 4WD Remote-Controlled Car Toys",
+   "hazard": "Serious Injury or Death from Battery Ingestion",
+   "date": "2026-11-12",
+   "modified": "2026-11-12",
+   "num": "27085",
+   "models": "",
+   "img": "/assets/img/recalls/kakgold-4wd-remote-controlled-car-toys-recall-27085/1.webp"
+  },
   "2b980a2c-b407-4488-af45-d8cce9c8650e": {
    "country": "au",
    "slug": "nevenka-baby-pull-string-giraffe-toy-recall",
@@ -7435,6 +7446,54 @@
    "models": "The Workplace Depot Multi-Purpose Combi Ladder",
    "cat": "Hand tools",
    "card": "/assets/img/recalls/the-workplace-depot-multi-purpose-combi-ladder-recall-2610-0236/card.webp"
+  },
+  "uk-2607-0090": {
+   "country": "uk",
+   "slug": "britax-romer-smile-iii-4-and-5z-pushchairs-recall-2607-0090",
+   "prod": "Britax Römer SMILE III, 4 and 5Z Pushchairs",
+   "hazard": "risk of injuries",
+   "date": "2026-11-12",
+   "modified": "2026-11-12",
+   "num": "2607-0090",
+   "models": "Britax Römer SMILE III, 4 and 5Z Pushchairs",
+   "cat": "Childcare articles childrens equipment",
+   "card": "/assets/img/recalls/britax-romer-smile-iii-4-and-5z-pushchairs-recall-2607-0090/card.webp"
+  },
+  "uk-2607-0101": {
+   "country": "uk",
+   "slug": "200-giant-large-water-beads-sold-via-amazon-recall-2607-0101",
+   "prod": "200 Giant Large Water Beads sold via Amazon",
+   "hazard": "serious risk of asphyxiation",
+   "date": "2026-07-14",
+   "modified": "2026-11-12",
+   "num": "2607-0101",
+   "models": "200 Giant Large Water Beads sold via Amazon",
+   "cat": "Household decorative articles",
+   "card": "/assets/img/recalls/200-giant-large-water-beads-sold-via-amazon-recall-2607-0101/card.webp"
+  },
+  "uk-2607-0112": {
+   "country": "uk",
+   "slug": "jacisk-50-000pcs-and-100pcs-water-beads-sold-recall-2607-0112",
+   "prod": "Jacisk 50,000Pcs and 100Pcs Water Beads sold via Amazon",
+   "hazard": "serious risk of asphyxiation",
+   "date": "2026-07-14",
+   "modified": "2026-11-12",
+   "num": "2607-0112",
+   "models": "Jacisk 50,000Pcs and 100Pcs Water Beads sold via Amazon",
+   "cat": "Household decorative articles",
+   "card": "/assets/img/recalls/jacisk-50-000pcs-and-100pcs-water-beads-sold-recall-2607-0112/card.webp"
+  },
+  "uk-2611-0030": {
+   "country": "uk",
+   "slug": "elka-rainwear-chemical-coverall-with-helmet-hood-recall-2611-0030",
+   "prod": "ELKA Rainwear Chemical Coverall with Helmet Hood",
+   "hazard": "The manufacturer’s routine monitoring revealed that the claimed flame-protection performa…",
+   "date": "2026-11-12",
+   "modified": "2026-11-12",
+   "num": "2611-0030",
+   "models": "ELKA Rainwear Chemical Coverall with Helmet Hood",
+   "cat": "Personal protective equipment ppe",
+   "card": "/assets/img/recalls/elka-rainwear-chemical-coverall-with-helmet-hood-recall-2611-0030/card.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
