@@ -2877,6 +2877,72 @@
    "models": "",
    "img": "/assets/img/recalls/kakgold-4wd-remote-controlled-car-toys-recall-27085/1.webp"
   },
+  "11058": {
+   "country": "us",
+   "slug": "huffy-buzz-bicycles-cerana-t2-e-trikes-recall-27086",
+   "prod": "Huffy Buzz Bicycles Cerana T2 E-Trikes",
+   "hazard": "Serious Injury from Fall hazard",
+   "date": "2026-11-12",
+   "modified": "2026-11-12",
+   "num": "27086",
+   "models": "",
+   "img": "/assets/img/recalls/huffy-buzz-bicycles-cerana-t2-e-trikes-recall-27086/1.webp"
+  },
+  "11059": {
+   "country": "us",
+   "slug": "cummins-portable-generators-recall-27087",
+   "prod": "Cummins Portable Generators",
+   "hazard": "Serious Injury from Fire and Burn hazard",
+   "date": "2026-11-12",
+   "modified": "2026-11-12",
+   "num": "27087",
+   "models": "",
+   "img": "/assets/img/recalls/cummins-portable-generators-recall-27087/1.webp"
+  },
+  "11060": {
+   "country": "us",
+   "slug": "allstar-sharper-image-tabletop-and-infinity-fire-pits-recall-27082",
+   "prod": "Allstar Sharper Image Tabletop and Infinity Fire Pits",
+   "hazard": "Serious Injury from Burn and Fire hazard",
+   "date": "2026-11-12",
+   "modified": "2026-11-12",
+   "num": "27082",
+   "models": "",
+   "img": "/assets/img/recalls/allstar-sharper-image-tabletop-and-infinity-fire-pits-recall-27082/1.webp"
+  },
+  "11061": {
+   "country": "us",
+   "slug": "shein-distribution-corporation-baby-rattle-and-teether-toy-recall-27083",
+   "prod": "SHEIN Distribution Corporation Baby Rattle and Teether Toy Sets",
+   "hazard": "Serious Injury or Death from Choking",
+   "date": "2026-11-12",
+   "modified": "2026-11-12",
+   "num": "27083",
+   "models": "",
+   "img": "/assets/img/recalls/shein-distribution-corporation-baby-rattle-and-teether-toy-recall-27083/1.webp"
+  },
+  "11062": {
+   "country": "us",
+   "slug": "qiomala-pressure-washers-recall-27084",
+   "prod": "QIOMALA Pressure Washers",
+   "hazard": "Injury or Death from Shock and Electrocution hazard",
+   "date": "2026-11-12",
+   "modified": "2026-11-12",
+   "num": "27084",
+   "models": "",
+   "img": "/assets/img/recalls/qiomala-pressure-washers-recall-27084/1.webp"
+  },
+  "11063": {
+   "country": "us",
+   "slug": "boshengya-rugs-recall-27088",
+   "prod": "Boshengya Rugs",
+   "hazard": "Serious Injury or Death from Fire hazard",
+   "date": "2026-11-12",
+   "modified": "2026-11-12",
+   "num": "27088",
+   "models": "",
+   "img": "/assets/img/recalls/boshengya-rugs-recall-27088/1.webp"
+  },
   "2b980a2c-b407-4488-af45-d8cce9c8650e": {
    "country": "au",
    "slug": "nevenka-baby-pull-string-giraffe-toy-recall",
