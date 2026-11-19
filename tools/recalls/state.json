@@ -2943,6 +2943,61 @@
    "models": "",
    "img": "/assets/img/recalls/boshengya-rugs-recall-27088/1.webp"
   },
+  "11064": {
+   "country": "us",
+   "slug": "cipton-bicycle-helmets-recall-27098",
+   "prod": "Cipton Bicycle Helmets",
+   "hazard": "Serious Injury or Death from Head Injury",
+   "date": "2026-11-19",
+   "modified": "2026-11-19",
+   "num": "27098",
+   "models": "",
+   "img": "/assets/img/recalls/cipton-bicycle-helmets-recall-27098/1.webp"
+  },
+  "11065": {
+   "country": "us",
+   "slug": "qpancy-childrens-pajama-sets-recall-27094",
+   "prod": "Qpancy Children’s Pajama Sets",
+   "hazard": "Serious Injury or Death from Burn hazard",
+   "date": "2026-11-19",
+   "modified": "2026-11-19",
+   "num": "27094",
+   "models": "",
+   "img": "/assets/img/recalls/qpancy-childrens-pajama-sets-recall-27094/1.webp"
+  },
+  "11066": {
+   "country": "us",
+   "slug": "hultafors-group-north-america-lighted-portfolios-angle-locators-recall-27090",
+   "prod": "Hultafors Group North America Lighted Portfolios, Angle Locators, Calipers and Calculators",
+   "hazard": "Serious Injury or Death from Battery Ingestion",
+   "date": "2026-11-19",
+   "modified": "2026-11-19",
+   "num": "27090",
+   "models": "",
+   "img": "/assets/img/recalls/hultafors-group-north-america-lighted-portfolios-angle-locators-recall-27090/1.webp"
+  },
+  "11067": {
+   "country": "us",
+   "slug": "kidsview-infant-bouncers-recall-27092",
+   "prod": "Kidsview Infant Bouncers",
+   "hazard": "Collapse and Impact Injury to Infants",
+   "date": "2026-11-19",
+   "modified": "2026-11-19",
+   "num": "27092",
+   "models": "",
+   "img": "/assets/img/recalls/kidsview-infant-bouncers-recall-27092/1.webp"
+  },
+  "11068": {
+   "country": "us",
+   "slug": "che-us-magnetic-robot-toys-recall-27096",
+   "prod": "CHE-US Magnetic Robot Toys",
+   "hazard": "Serious Injury or Death from Magnet Ingestion",
+   "date": "2026-11-19",
+   "modified": "2026-11-19",
+   "num": "27096",
+   "models": "",
+   "img": "/assets/img/recalls/che-us-magnetic-robot-toys-recall-27096/1.webp"
+  },
   "2b980a2c-b407-4488-af45-d8cce9c8650e": {
    "country": "au",
    "slug": "nevenka-baby-pull-string-giraffe-toy-recall",
@@ -7688,6 +7743,53 @@
    "models": "Shark Tail Baby Sleeping Bag",
    "cat": "Childcare articles childrens equipment",
    "card": "/assets/img/recalls/shark-tail-baby-sleeping-bag-recall-2610-0064/card.webp"
+  },
+  "ca-82969": {
+   "country": "ca",
+   "slug": "wheat-free-flour-recall-82969",
+   "prod": "Wheat Free Flour",
+   "hazard": "undeclared wheat",
+   "date": "2026-11-18",
+   "modified": "2026-11-18",
+   "num": "82969",
+   "models": "Wheat Free Flour Brand Product Size UPC Code Paras Wheat Free Flour 800 g 8 42388 00071 1 SZ26040028 Paras Wheat Free Flour 4 lb 8 42388 00106 0 SZ26040028",
+   "img": "/assets/img/recalls/wheat-free-flour-recall-82969/1.webp"
+  },
+  "uk-2611-0074": {
+   "country": "uk",
+   "slug": "primark-home-storage-books-recall-2611-0074",
+   "prod": "Primark Home Storage Books",
+   "hazard": "serious chemical risk",
+   "date": "2026-11-19",
+   "modified": "2026-11-19",
+   "num": "2611-0074",
+   "models": "Primark Home Storage Books",
+   "cat": "Household decorative articles",
+   "card": "/assets/img/recalls/primark-home-storage-books-recall-2611-0074/card.webp"
+  },
+  "uk-2611-0130": {
+   "country": "uk",
+   "slug": "britax-romer-baby-safe-pro-infant-carrier-recall-2611-0130",
+   "prod": "Britax Römer Baby Safe Pro Infant Carrier",
+   "hazard": "Affected batches of the product present a risk of injuries",
+   "date": "2026-11-19",
+   "modified": "2026-11-19",
+   "num": "2611-0130",
+   "models": "Britax Römer Baby Safe Pro Infant Carrier",
+   "cat": "Childcare articles childrens equipment",
+   "card": "/assets/img/recalls/britax-romer-baby-safe-pro-infant-carrier-recall-2611-0130/card.webp"
+  },
+  "uk-2610-0248": {
+   "country": "uk",
+   "slug": "vuly-v1-seat-swing-recall-2610-0248",
+   "prod": "Vuly V1 Seat Swing",
+   "hazard": "risk of injuries as the seat may separate from the rope during use",
+   "date": "2026-11-19",
+   "modified": "2026-11-19",
+   "num": "2610-0248",
+   "models": "Vuly V1 Seat Swing",
+   "cat": "Toys",
+   "card": "/assets/img/recalls/vuly-v1-seat-swing-recall-2610-0248/card.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
