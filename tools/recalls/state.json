@@ -7535,15 +7535,16 @@
   },
   "uk-2607-0266": {
    "country": "uk",
-   "slug": "piper-k-bag-charms-seal-lifeguard-and-duck-recall-2607-0266",
-   "prod": "Piper K Bag Charms – Seal Lifeguard and Duck in Dungarees sold by TK Maxx",
+   "slug": "piper-k-bag-charms-sold-by-tk-maxx-recall-2607-0266",
+   "prod": "Piper K Bag Charms sold by TK Maxx",
    "hazard": "risk of choking",
-   "date": "2026-11-02",
-   "modified": "2026-11-02",
+   "date": "2026-11-20",
+   "modified": "2026-11-20",
    "num": "2607-0266",
-   "models": "Piper K Bag Charms – Seal Lifeguard and Duck in Dungarees sold by TK Maxx",
+   "models": "Piper K Bag Charms sold by TK Maxx",
    "cat": "Household decorative articles",
-   "card": "/assets/img/recalls/piper-k-bag-charms-seal-lifeguard-and-duck-recall-2607-0266/card.webp"
+   "card": "/assets/img/recalls/piper-k-bag-charms-sold-by-tk-maxx-recall-2607-0266/card.webp",
+   "amendedAt": "2026-11-20"
   },
   "ca-82874": {
    "country": "ca",
@@ -7834,6 +7835,30 @@
    "models": "Vuly V1 Seat Swing",
    "cat": "Toys",
    "card": "/assets/img/recalls/vuly-v1-seat-swing-recall-2610-0248/card.webp"
+  },
+  "uk-2611-0128": {
+   "country": "uk",
+   "slug": "toolpak-115mm-wood-cutting-blade-for-mini-grinders-recall-2611-0128",
+   "prod": "TOOLPAK 115mm Wood Cutting Blade for Mini Grinders",
+   "hazard": "risk of injuries as the toothed saw blade attachment increases the likelihood of kickback…",
+   "date": "2026-11-20",
+   "modified": "2026-11-20",
+   "num": "2611-0128",
+   "models": "TOOLPAK 115mm Wood Cutting Blade for Mini Grinders",
+   "cat": "Machinery",
+   "card": "/assets/img/recalls/toolpak-115mm-wood-cutting-blade-for-mini-grinders-recall-2611-0128/card.webp"
+  },
+  "uk-2611-0124": {
+   "country": "uk",
+   "slug": "lemieux-ltd-junior-vector-balance-stirrup-recall-2611-0124",
+   "prod": "LeMieux Ltd Junior Vector Balance Stirrup",
+   "hazard": "risk of injuries as the stirrup may catch a rider’s boot during a fall",
+   "date": "2026-11-20",
+   "modified": "2026-11-20",
+   "num": "2611-0124",
+   "models": "LeMieux Ltd Junior Vector Balance Stirrup",
+   "cat": "Hobby sports equipment",
+   "card": "/assets/img/recalls/lemieux-ltd-junior-vector-balance-stirrup-recall-2611-0124/card.webp"
   }
  },
  "indexnowKey": "c87e4cf278f410205c6c08647d9d9f40"
